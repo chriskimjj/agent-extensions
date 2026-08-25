@@ -1,34 +1,70 @@
-# E — Explain Again
+# When the answer doesn’t land, press E.
 
-**Press E to understand.**
+You shouldn’t need to understand your confusion<br>
+before you can ask for a clearer explanation.
 
-E is a one-character Agent Skill for recovering understanding inside an active AI conversation. Send exactly `e` or `E`; the agent re-explains the immediately preceding answer without treating the message as approval to continue the underlying task.
+No prompt engineering.<br>
+No carefully written follow-up.<br>
+No accidental “yes.”
 
-## Why this skill exists
-
-**Origin.** E was designed for the moment when a user knows an answer did not land but cannot yet formulate a detailed follow-up question.
-
-**The friction.** The user otherwise has to diagnose what they did not understand and write a longer prompt, while a terse reply can be mistaken for consent to continue a task.
-
-**Who it helps.** It helps people who need a clearer explanation within an ongoing AI conversation, especially when technical language or missing conceptual links make the previous answer hard to follow.
-
-**What changes.** Exact `e` or `E` becomes a context-local understanding-recovery command with an explicit read-only boundary: explain the current answer, preserve accuracy and uncertainty, and do not resume the work.
-
-## Quick start
-
-Install the released version in Hermes Agent:
-
-```bash
-hermes skills install https://raw.githubusercontent.com/chriskimjj/agent-skills/e-v0.2.0/skills/e/SKILL.md
-```
-
-Ask for any explanation, then send:
+Just send:
 
 ```text
 e
 ```
 
-Expected behavior: the agent starts with a clearer explanation in the conversation's language, defines necessary technical terms in ordinary language, preserves important conditions and uncertainty, and performs no underlying action.
+**E re-explains the answer—and stops there.**
+
+### Before → `e` → After
+
+**Before:** The answer does not land.<br>
+**Input:** `e`<br>
+**After:** The explanation is rebuilt—clearer, accurate about important limits, and structured to follow.
+
+E does not merely shorten text. It aims to make the answer:
+
+- **Easy enough to follow.** Necessary technical terms are explained in ordinary language.
+- **Accurate enough to trust.** Conditions, exceptions, uncertainty, and trade-offs stay intact.
+- **Structured enough to use.** Related ideas are connected as a process instead of left as isolated definitions.
+
+**You do not have to diagnose your own confusion first.** E recovers the immediately preceding answer from the current conversation, explains it again, and performs no underlying action.
+
+## Why this skill exists
+
+**Origin.** E was designed for the moment when a user knows an AI answer did not land but cannot yet formulate a detailed follow-up question.
+
+**The friction.** Without E, the user must first work out what they failed to understand, translate that confusion into a better prompt, and hope a terse reply is not mistaken for consent to continue the task.
+
+**Who it helps.** It helps people who need a clearer explanation inside an active AI conversation—especially when technical language, compressed reasoning, or a missing conceptual link makes the previous answer hard to follow.
+
+**What changes.** Exact `e` or `E` becomes a context-local understanding-recovery command: make the current answer easier, accurate, and structured; preserve its important limits; and stop without resuming the work.
+
+## Quick start
+
+Install E v0.2.0 after the versioned release tag is available:
+
+```bash
+hermes skills install https://raw.githubusercontent.com/chriskimjj/agent-skills/e-v0.2.0/skills/e/SKILL.md
+```
+
+Ask for any explanation, then send exactly:
+
+```text
+e
+```
+
+Expected behavior: the agent begins with the clearer explanation in the conversation’s language, defines necessary technical terms in ordinary language, reconnects the missing reasoning, preserves important uncertainty, and performs no underlying action.
+
+## Why one letter is different
+
+“Explain that more simply” works when you already know what to ask. E is for the earlier moment: you only know that the answer did not land.
+
+Its contract is deliberately narrow:
+
+- **Exact-token:** only trimmed `e` or `E` triggers it.
+- **Context-local:** it uses the immediately preceding answer or clearly active topic—not unrelated sessions or private project history.
+- **Read-only:** it explains; it does not continue.
+- **Self-contained:** E owns the complete behavior instead of routing through another explanation skill.
 
 ## Trigger contract
 
@@ -72,9 +108,9 @@ Before publication it passed:
 - exact candidate/package hash comparison;
 - privacy and secret scans with no blocking findings.
 
-One Hermes security scanner caution classified the rule for selecting necessary source context as possible context exfiltration. Human review accepted it as a conservative false positive because E limits itself to the current conversation or thread, forbids unrelated/private context aggregation, and forbids external transmission and task resumption.
+A versioned release is created only after the exact immutable remote commit is read back and clean-installed again.
 
-After publication, the immutable remote commit must be read back and clean-installed again before the release is called remotely verified.
+One Hermes security scanner caution classified the rule for selecting necessary source context as possible context exfiltration. Human review accepted it as a conservative false positive because E limits itself to the current conversation or thread, forbids unrelated/private context aggregation, and forbids external transmission and task resumption.
 
 ## Known limitation
 
