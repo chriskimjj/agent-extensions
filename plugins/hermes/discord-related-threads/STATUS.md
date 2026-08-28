@@ -92,6 +92,10 @@
 - 라이브 `discord-related-threads`의 `1.0.0` `__init__.py`와 `plugin.yaml`을 변경 없이
   이 Git 디렉토리의 플러그인 기준선으로 가져왔다. 라이브 파일은 수정하지 않았다.
 - 임시 `HERMES_HOME`에서 기존 관계의 양방향 link/list/unlink 회귀 테스트가 통과한다.
+- 공개 `chriskimjj/agent-extensions`의 커밋을 고정한 Hermes 하위 디렉토리 설치가
+  임시 `HERMES_HOME`에서 통과했고, 설치된 두 기준 파일의 해시가 일치했다.
+- 이전 `chriskimjj/agent-skills` 웹 주소와 E v0.2.0 raw 설치 URL은 저장소 이름 변경
+  뒤에도 정상 응답한다.
 - 라이브 `~/.hermes/hermes-agent`의 `main` 작업 트리에는 추적·미추적 변경이 있고
   `origin/main`보다 13커밋 앞, 1커밋 뒤라서 새 기능의 깨끗한 개발 기준점으로 바로
   쓰기 어렵다.

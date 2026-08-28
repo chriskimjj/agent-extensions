@@ -71,3 +71,8 @@ implemented or enabled.
 
 Changes are reviewed and verified per extension. Prior acceptance of one
 extension or release does not authorize later bytes or a different extension.
+
+GitHub redirects the former `chriskimjj/agent-skills` repository name to this
+repository, and the previously published E v0.2.0 raw URL remains reachable.
+Do not create a new repository named `agent-skills`, because reusing that name
+would replace the redirect.
