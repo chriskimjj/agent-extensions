@@ -44,7 +44,7 @@ E does not merely shorten text. It aims to make the answer:
 Install E v0.2.0 after the versioned release tag is available:
 
 ```bash
-hermes skills install https://raw.githubusercontent.com/chriskimjj/agent-skills/e-v0.2.0/skills/e/SKILL.md
+hermes skills install https://raw.githubusercontent.com/chriskimjj/agent-extensions/e-v0.2.0/skills/e/SKILL.md
 ```
 
 Ask for any explanation, then send exactly:

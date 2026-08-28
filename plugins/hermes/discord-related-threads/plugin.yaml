@@ -1,0 +1,4 @@
+name: discord-related-threads
+version: "1.0.0"
+description: Register and display related Discord work threads in Hermes final answers via a transform_llm_output hook.
+requires_env: []
