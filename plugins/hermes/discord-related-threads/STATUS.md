@@ -91,6 +91,11 @@
   `git diff --check`도 통과했다.
 - 실제 Hermes `PluginContext`로 개발 플러그인을 교차 로드한 임시 프로필 스모크에서
   7개 게이트웨이 경계 등록, 명령 선점과 원본 히스토리 제외가 함께 통과했다.
+- 검증한 플러그인 출처는 원격 main의 `0bd2f8d`, 대응 Hermes 코어 출처는 로컬 기능
+  브랜치의 `b20695a4cb`다. 코어 upstream은 현재 계정에 read-only이고 사용자 fork가
+  없어 코어 커밋은 아직 원격에 없다. 상세 결과는
+  [개발 검증 기록](evidence/2026-08-30-thread-attention-development-verification.md)에
+  남겼다.
 - 기존 공개 `agent-skills` 저장소는 스킬과 플러그인을 함께 담는
   `agent-extensions`로 재구성되었고, `skills/`와 `plugins/hermes/`가 분리되어 있다.
 - 이전 기준선의 임시 프로필 설치와 기존 관계 link/list/unlink 회귀 결과는
