@@ -60,6 +60,36 @@ class RelationshipBaselineTest(unittest.TestCase):
             [],
         )
 
+    def test_registration_preserves_tool_and_exposes_all_runtime_boundaries(self) -> None:
+        class FakeContext:
+            def __init__(self) -> None:
+                self.tools = []
+                self.hooks = {}
+
+            def register_tool(self, **kwargs) -> None:
+                self.tools.append(kwargs["name"])
+
+            def register_hook(self, name, callback) -> None:
+                self.hooks[name] = callback
+
+        context = FakeContext()
+        self.plugin.register(context)
+
+        self.assertEqual(context.tools, ["discord_thread_links"])
+        self.assertTrue(
+            {
+                "transform_llm_output",
+                "pre_gateway_dispatch",
+                "gateway_history_message",
+                "gateway_control_message",
+                "gateway_thread_participation",
+                "post_gateway_delivery",
+                "gateway_started",
+                "gateway_stopping",
+            }.issubset(context.hooks)
+        )
+        self.assertEqual(self.plugin._THREAD_ATTENTION_RUNTIME.state, "disabled")
+
 
 if __name__ == "__main__":
     unittest.main()

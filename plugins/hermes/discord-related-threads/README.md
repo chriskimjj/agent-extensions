@@ -2,14 +2,17 @@
 
 A standalone user plugin for `NousResearch/hermes-agent`.
 
-The imported `1.0.0` code preserves the existing behavior: it stores explicit
-relationships between Discord work threads and can append related-thread links
-to Hermes final answers. This directory also owns the design and future
-implementation of **Hermes Discord Thread Attention**—automatic thread
-inventory, explicit acknowledgement and reminders, and a bounded review digest.
+Version `1.1.0` preserves the original explicit related-thread tool and footer,
+and implements **Hermes Discord Thread Attention**: automatic metadata-only
+inventory, acknowledgement and reminders, durable delivery, and a bounded daily
+review digest. Recognized control commands are handled before agent dispatch and
+do not call an LLM.
 
-The thread-attention feature is specified but not implemented or enabled yet.
-Installing this baseline does not create the planned inventory or digest.
+Thread attention is opt-in and defaults to disabled. Installing the code alone
+does not collect threads or send Discord messages. Enabling it also requires the
+paired generic Hermes gateway boundaries described in
+[ARCHITECTURE.md](ARCHITECTURE.md) and a configured Discord channel ID; use
+[DEPLOYMENT.md](DEPLOYMENT.md) for installation and rollback.
 
 ## Install from the collection
 
@@ -19,8 +22,15 @@ Hermes supports installing a plugin from a repository subdirectory:
 hermes plugins install chriskimjj/agent-extensions/plugins/hermes/discord-related-threads
 ```
 
-The live profile path `~/.hermes/plugins/discord-related-threads` remains a
-deployment target. Development and review happen in this Git directory.
+This command installs only the plugin portion. Do not enable thread attention
+until the matching Hermes core revision is installed and validated. The live
+profile path `~/.hermes/plugins/discord-related-threads` remains a deployment
+target; development and review happen in this Git directory.
+
+The exact command grammar, feature configuration, and digest behavior live in
+[SPEC.md](SPEC.md). The default review-channel name is `#hermes-review`, but the
+runtime routes only by the configured `digest_channel_id` and never creates or
+guesses a channel.
 
 ## Document map
 
@@ -35,7 +45,7 @@ Each fact has one authoritative document.
 | Why were costly choices made? | [docs/adr/](docs/adr/) |
 | How is it installed and rolled back? | [DEPLOYMENT.md](DEPLOYMENT.md) |
 | What has actually been observed? | [STATUS.md](STATUS.md) |
-| What is the next implementation gate? | [NEXT.md](NEXT.md) |
+| What is the next delivery gate? | [NEXT.md](NEXT.md) |
 | Where does reproducible verification go? | [evidence/](evidence/) |
 
 ## Current decisions

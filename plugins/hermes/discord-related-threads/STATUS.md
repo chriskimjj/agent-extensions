@@ -1,6 +1,6 @@
 # Current status
 
-기준일: 2026-08-29
+기준일: 2026-08-30
 
 ## 합의됨
 
@@ -45,11 +45,13 @@
   이유, 관련 시각만 한두 줄로 표시한다. 메시지 본문과 LLM 요약은 사용하지 않는다.
 - 다이제스트는 최대 10개와 `외 N개`, 오전 9시 기본 일정, 최소 한 번 전달 정책을
   사용한다.
+- 검토 전용 Discord 채널의 권장 이름은 `#hermes-review`로 정했다. 런타임은 이름을
+  검색하거나 채널을 자동 생성하지 않고 설정된 `digest_channel_id`만 사용한다.
 - 사람이 읽는 계약과 플러그인 구현 코드는 `agent-extensions`의
   `plugins/hermes/discord-related-threads`가 소유한다. 깨끗한
   `feat/discord-predispatch-thread-routing` Hermes Agent worktree에는 플러그인 전용
-  로직 대신 범용 히스토리 제외 연결부만 둔다. 라이브 `~/.hermes` 경로는 테스트된
-  산출물의 배포 대상으로만 취급한다.
+  로직 대신 범용 게이트웨이 훅과 Discord 공개 adapter API만 둔다. 라이브
+  `~/.hermes` 경로는 테스트된 산출물의 배포 대상으로만 취급한다.
 - 배포는 출처 커밋·파일 해시를 고정한 묶음만 사용하고, 게이트웨이를 멈춘 뒤 코드와
   SQLite를 백업한다. DB 마이그레이션은 추가 전용이며, 정상 코드 롤백 때 새 스키마는
   남기고 DB 무결성이 깨졌을 때만 백업 DB를 복원한다.
@@ -68,62 +70,46 @@
   연다. 준비 완료일의 오전 9시가 지났으면 그날 보충 다이제스트를 한 번 실행하고
   과거 날짜별 다이제스트는 재생하지 않는다.
 
-## 로컬에서 관찰됨
+## 개발본에서 구현·검증됨
 
-- Hermes Agent v0.18.2가 `~/.hermes/hermes-agent`에 설치되어 있다.
-- 설치본에는 `pre_gateway_dispatch` 플러그인 훅이 있다.
-- `discord-related-threads` 플러그인이 활성화되어 있고, 라이브 경로는
-  `~/.hermes/plugins/discord-related-threads`다.
-- 해당 플러그인은 WAL 모드 SQLite 저장소와 transform 훅을 이미 사용한다.
-- Hermes Discord 어댑터에는 성공 reaction 수명주기가 있다.
-- `pre_gateway_dispatch` 훅은 이벤트와 게이트웨이를 받고, Discord 어댑터에는 비동기
-  메시지 전송 경로가 있어 고정 확인 메시지를 LLM 없이 보내는 구현이 가능하다.
-- 현재 훅의 반환 동작은 `skip`, `rewrite`, `allow`뿐이므로 확인 메시지는 어댑터 전송
-  경로를 사용해야 하며, 실패 reaction의 정확한 처리는 아직 구현·검증되지 않았다.
-- Hermes Discord 어댑터는 참여한 쓰레드 ID를 재시작 후에도 남도록 기록하며,
-  현재 프로필에는 수백 개의 ID가 있다.
-- 어댑터의 누락 메시지 복구 경로는 허용된 채널의 활성 쓰레드와 최근 보관
-  쓰레드를 열거할 수 있다.
-- 현재 누락 메시지 복구는 현 Hermes 봇이 작성한 메시지를 작업 대상으로 삼지
-  않는다. 채널 문맥 수집에는 영속적인 비대화형 메시지 ID 필터가 있지만 현재 구현은
-  최대 2,000개로 제한되어 있고, 사람의 제어 명령 ID를 장기 제외하는 전용 장부는 없다.
-- 기존 공개 `agent-skills` 저장소를 스킬과 플러그인을 함께 담는
-  `agent-extensions`로 재구성했고, `skills/`와 `plugins/hermes/`를 분리했다.
-- 라이브 `discord-related-threads`의 `1.0.0` `__init__.py`와 `plugin.yaml`을 변경 없이
-  이 Git 디렉토리의 플러그인 기준선으로 가져왔다. 라이브 파일은 수정하지 않았다.
-- 임시 `HERMES_HOME`에서 기존 관계의 양방향 link/list/unlink 회귀 테스트가 통과한다.
-- 공개 `chriskimjj/agent-extensions`의 커밋을 고정한 Hermes 하위 디렉토리 설치가
-  임시 `HERMES_HOME`에서 통과했고, 설치된 두 기준 파일의 해시가 일치했다.
-- 이전 `chriskimjj/agent-skills` 웹 주소와 E v0.2.0 raw 설치 URL은 저장소 이름 변경
-  뒤에도 정상 응답한다.
-- 라이브 `~/.hermes/hermes-agent`의 `main` 작업 트리에는 추적·미추적 변경이 있고
-  `origin/main`보다 13커밋 앞, 1커밋 뒤라서 새 기능의 깨끗한 개발 기준점으로 바로
-  쓰기 어렵다.
-- `~/.hermes/worktrees/discord-predispatch-thread-routing`에는
-  `feat/discord-predispatch-thread-routing` 브랜치의 깨끗한 작업 트리가 있고,
-  `pre_gateway_dispatch` 진입점과 관련 Discord 테스트가 들어 있다. 앞으로 이
-  worktree는 필요한 범용 Hermes 코어 연결부만 소유한다.
-- 수동 opt-in 최초 결정은 가져온 legacy Hermes Lab ADR-0007에 폐기 이력으로 남아
-  있고, 현행 결정은 이 프로젝트의 ADR-0001과 ADR-0003다. ADR-0002는 ADR-0003으로
-  대체되었다.
-- 이 기능의 전용 문서 경계를 2026-08-28에 만들었다.
+- 플러그인 `1.1.0`은 기존 관계 도구·footer를 유지하면서 설정 parser, 추가 전용
+  SQLite schema, 인벤토리·재알림·히스토리 제외·전달 장부 repository를 구현한다.
+- 명령 parser와 고정 두 줄 응답, 권한 결과를 사용하는 선점 처리, reaction 전환,
+  원본·확인 메시지 히스토리 격리와 LLM 우회가 연결되어 있다.
+- 영속 참여 ID 스냅샷, 실시간 우선 수집, 재개 가능한 최초 가져오기, 1회 요약,
+  접근 불가 재확인과 링크 가능한 항목의 일일 경량 메타데이터 갱신이 구현되어 있다.
+- 후보 병합, 3일 재노출 제한, 5+5 가변 배분, 신규 3·과거 2 배분, 최대 10개와
+  `외 N개`, 빈 다이제스트를 포함한 메타데이터 전용 렌더링이 구현되어 있다.
+- 전달 장부는 최소 한 번 전송, 1분·5분·30분·3시간 재시도, 전날 다이제스트 대체,
+  원본 전달 중단 경고와 다이제스트 채널 장애 1회 기록·복구 경고를 구현한다.
+- Hermes 코어 기능 브랜치는 범용 `gateway_control_message`,
+  `pre_gateway_dispatch`, `gateway_history_message`, `gateway_thread_participation`,
+  `post_gateway_delivery`, `gateway_started`, `gateway_stopping` 경계와 Discord 공개
+  메타데이터·전달 대상 검증 API를 제공한다.
+- 플러그인 테스트 43개와 변경 경로를 묶은 Hermes 코어 회귀 테스트 399개가
+  통과했다. 변경 Python 파일의 Ruff, bytecode compile과 두 작업 트리의
+  `git diff --check`도 통과했다.
+- 실제 Hermes `PluginContext`로 개발 플러그인을 교차 로드한 임시 프로필 스모크에서
+  7개 게이트웨이 경계 등록, 명령 선점과 원본 히스토리 제외가 함께 통과했다.
+- 기존 공개 `agent-skills` 저장소는 스킬과 플러그인을 함께 담는
+  `agent-extensions`로 재구성되었고, `skills/`와 `plugins/hermes/`가 분리되어 있다.
+- 이전 기준선의 임시 프로필 설치와 기존 관계 link/list/unlink 회귀 결과는
+  `evidence/`에 보존되어 있다.
 
-## 아직 구현되지 않음
+## 라이브 상태
 
-- 자동 인벤토리 수집기, 상태 테이블, 합의된 첫 자동 발견 시각 계산
-- 기존 참여 쓰레드 전체의 멱등 최초 가져오기, 링크 확인, 단계적 배분, 1회 결과 요약
-- 합의된 확인 기준점·종료/재개·후보 병합·3일 재노출 제한·5+5 가변 배분 로직
-- 재알림 장부, 합의된 명령 파서, 권한 포함 단락 훅, 고정 확인 메시지 전송
-- 전달 장부, 멱등 논리 키, 합의된 재시도·날짜 대체·접근 불가 재확인 로직
-- 합의된 reaction 전환, 재시도 표식, 전달 중단 경고와 복구 로그
-- 원본 명령·고정 확인 메시지 ID를 프로필 초기화까지 보존하는 히스토리 제외 장부와
-  모든 문맥 경로 통합
-- 통합 후보 쿼리와 합의된 메타데이터 전용 검토 다이제스트 형식
-- 위 동작의 자동 테스트와 Discord 스모크 테스트
-- 합의된 배포 묶음 생성·백업·설치·스모크 테스트·롤백 자동화와 실제 실행
-- 합의된 기능별 `config.yaml` 로딩·검증과 게이트웨이 재시작 기반 활성화
-- 합의된 설정 오류 상태, 고정 오류 응답과 명령 fail-closed 안전 통로
-- 합의된 활성화 ID·과거 스냅샷·실시간 우선·batch 재개·최초 요약·당일 보충 순서
+- 라이브 Hermes Agent와 `~/.hermes/plugins/discord-related-threads`에는 이번 개발본을
+  설치하지 않았다.
+- 라이브 설정, SQLite DB, 게이트웨이, Discord 채널과 예약 작업을 변경하지 않았다.
+- 따라서 실제 Discord에서의 채널 권한 검증, 최초 가져오기, 명령·reaction,
+  다이제스트 전송은 아직 실행하거나 관찰하지 않았다.
 
-이 프로젝트 경계를 만드는 과정에서는 라이브 Hermes 파일, 게이트웨이, Discord,
-예약 작업을 변경하지 않았다.
+## 남은 운영 작업
+
+- 두 출처 커밋을 고정한 배포 manifest와 파일 해시를 만들기
+- 임시 프로필에서 플러그인과 코어를 함께 설치하는 비라이브 스모크 및 evidence 남기기
+- 사용자의 별도 라이브 배포 승인 뒤 `#hermes-review`의 실제 채널 ID를 정하고,
+  백업·설치·활성화·Discord 스모크·롤백 확인을 수행하기
+
+다음 실행 관문은 [NEXT.md](NEXT.md), 정확한 절차는
+[DEPLOYMENT.md](DEPLOYMENT.md)가 소유한다.

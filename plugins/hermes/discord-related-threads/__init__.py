@@ -13,14 +13,21 @@ import os
 import re
 import sqlite3
 import threading
+from contextlib import closing
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
+
+try:
+    from .thread_attention import ThreadAttentionRuntime, load_thread_attention_config
+except ImportError:  # Direct-file test loading outside Hermes' package loader.
+    from thread_attention import ThreadAttentionRuntime, load_thread_attention_config
 
 # --- SQLite graph ---------------------------------------------------------
 
 _DB_PATH = Path(os.getenv("HERMES_HOME", "~/.hermes")).expanduser() / "discord-related-threads" / "relations.sqlite3"
 _DB_LOCK = threading.RLock()
+_THREAD_ATTENTION_RUNTIME: Optional[ThreadAttentionRuntime] = None
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS relations (
@@ -49,7 +56,7 @@ def _get_conn() -> sqlite3.Connection:
 
 
 def _init_db() -> None:
-    with _DB_LOCK, _get_conn() as conn:
+    with _DB_LOCK, closing(_get_conn()) as conn, conn:
         conn.executescript(_SCHEMA)
 
 
@@ -73,7 +80,7 @@ def link_threads(
     relation = (relation or "related").strip() or "related"
     now = _utc_now()
 
-    with _DB_LOCK, _get_conn() as conn:
+    with _DB_LOCK, closing(_get_conn()) as conn, conn:
         conn.execute("BEGIN IMMEDIATE")
         try:
             for a, b in ((thread_id, related_thread_id), (related_thread_id, thread_id)):
@@ -100,7 +107,7 @@ def unlink_threads(
     if thread_id == related_thread_id:
         return {"success": False, "error": "thread_id and related_thread_id must differ"}
 
-    with _DB_LOCK, _get_conn() as conn:
+    with _DB_LOCK, closing(_get_conn()) as conn, conn:
         conn.execute("BEGIN IMMEDIATE")
         try:
             for a, b in ((thread_id, related_thread_id), (related_thread_id, thread_id)):
@@ -118,7 +125,7 @@ def unlink_threads(
 
 def list_relations(guild_id: str, thread_id: str) -> Dict[str, Any]:
     """List all relations for a thread."""
-    with _DB_LOCK, _get_conn() as conn:
+    with _DB_LOCK, closing(_get_conn()) as conn, conn:
         rows = conn.execute(
             "SELECT related_thread_id, relation, label, created_at FROM relations WHERE guild_id=? AND thread_id=? ORDER BY created_at",
             (guild_id, thread_id),
@@ -176,13 +183,14 @@ def _resolve_current_discord_thread() -> Optional[Dict[str, str]]:
     We search for the most recent session matching the current process.
     """
     try:
-        from hermes_cli.config import load_config
         hermes_home = Path(os.getenv("HERMES_HOME", "~/.hermes")).expanduser()
         state_db = hermes_home / "state.db"
         if not state_db.exists():
             return None
 
-        with sqlite3.connect(f"file:{state_db}?mode=ro", uri=True) as conn:
+        with closing(
+            sqlite3.connect(f"file:{state_db}?mode=ro", uri=True)
+        ) as conn, conn:
             conn.row_factory = sqlite3.Row
             row = conn.execute(
                 """SELECT session_key, origin_json FROM sessions
@@ -240,6 +248,7 @@ def _on_transform_llm_output(**kwargs) -> Optional[str]:
 # --- Plugin registration --------------------------------------------------
 
 def register(ctx) -> None:
+    global _THREAD_ATTENTION_RUNTIME
     _init_db()
 
     # Tool: discord_thread_links (link / list / unlink)
@@ -301,3 +310,39 @@ def register(ctx) -> None:
 
     # Hook: transform_llm_output
     ctx.register_hook("transform_llm_output", _on_transform_llm_output)
+
+    # Thread attention remains independently disabled unless the profile's
+    # plugins.entries.discord-related-threads.thread_attention.enabled is true.
+    # The hooks are still registered so existing exclusion-ledger IDs remain
+    # filterable if the feature is later disabled.
+    _THREAD_ATTENTION_RUNTIME = ThreadAttentionRuntime(
+        load_thread_attention_config()
+    )
+    ctx.register_hook(
+        "pre_gateway_dispatch",
+        _THREAD_ATTENTION_RUNTIME.on_pre_gateway_dispatch,
+    )
+    ctx.register_hook(
+        "gateway_history_message",
+        _THREAD_ATTENTION_RUNTIME.on_history_message,
+    )
+    ctx.register_hook(
+        "gateway_control_message",
+        _THREAD_ATTENTION_RUNTIME.on_control_message,
+    )
+    ctx.register_hook(
+        "gateway_thread_participation",
+        _THREAD_ATTENTION_RUNTIME.on_thread_participation,
+    )
+    ctx.register_hook(
+        "post_gateway_delivery",
+        _THREAD_ATTENTION_RUNTIME.on_post_gateway_delivery,
+    )
+    ctx.register_hook(
+        "gateway_started",
+        _THREAD_ATTENTION_RUNTIME.on_gateway_started,
+    )
+    ctx.register_hook(
+        "gateway_stopping",
+        _THREAD_ATTENTION_RUNTIME.on_gateway_stopping,
+    )
