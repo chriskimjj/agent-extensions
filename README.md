@@ -35,18 +35,20 @@ hermes skills install https://raw.githubusercontent.com/chriskimjj/agent-extensi
 
 ### Hermes: discord-related-threads
 
-The existing Hermes plugin registers explicit relationships between Discord
-work threads and appends related-thread links to final answers. Its directory
-also owns the accepted design for the planned thread-inventory, acknowledgement,
-reminder, and bounded-digest feature.
+The Hermes plugin keeps its original explicit relationship tool and related-link
+footer. Version `1.1.0` also implements an opt-in, metadata-only thread inventory,
+acknowledgement, reminder, and bounded daily digest without LLM calls.
 
 ```bash
 hermes plugins install chriskimjj/agent-extensions/plugins/hermes/discord-related-threads
 ```
 
-The imported `1.0.0` baseline contains the existing relationship behavior.
-The thread-attention feature described in its project documents is not yet
-implemented or enabled.
+Thread attention is implemented but defaults to disabled. It is not yet a
+supported plugin-only release because its remaining generic Hermes host contract
+is still under review in
+[NousResearch/hermes-agent#100004](https://github.com/NousResearch/hermes-agent/pull/100004).
+Do not enable the development feature on a live profile until the plugin records
+an official compatible Hermes floor.
 
 [Open the plugin source and project documents.](plugins/hermes/discord-related-threads/)
 
@@ -55,7 +57,7 @@ implemented or enabled.
 | Kind | Extension | Current boundary | Version | License |
 | --- | --- | --- | ---: | --- |
 | Skill | [`e`](skills/e/) | Exact `e`/`E` re-explains the active answer without resuming the task | 0.2.0 | MIT |
-| Hermes plugin | [`discord-related-threads`](plugins/hermes/discord-related-threads/) | Existing relationship feature imported; thread-attention feature specified but not implemented | 1.0.0 | Not declared |
+| Hermes plugin | [`discord-related-threads`](plugins/hermes/discord-related-threads/) | Relationship feature retained; thread attention implemented, default-disabled, awaiting official host contract | 1.1.0-dev | Not declared |
 
 ## Trust and release boundary
 

@@ -1,0 +1,65 @@
+name: Discord related threads
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "plugins/hermes/discord-related-threads/**"
+      - ".github/workflows/discord-related-threads.yml"
+  pull_request:
+    paths:
+      - "plugins/hermes/discord-related-threads/**"
+      - ".github/workflows/discord-related-threads.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: discord-related-threads-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: "3.11"
+          - os: ubuntu-latest
+            python: "3.12"
+          - os: ubuntu-latest
+            python: "3.13"
+          - os: macos-latest
+            python: "3.11"
+          - os: windows-latest
+            python: "3.11"
+
+    defaults:
+      run:
+        working-directory: plugins/hermes/discord-related-threads
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install test tooling
+        run: python -m pip install --disable-pip-version-check "ruff==0.15.10" "tzdata==2025.3"
+
+      - name: Run behavior tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Check Python sources
+        run: ruff check __init__.py thread_attention tests
+
+      - name: Compile Python sources
+        run: python -m compileall -q __init__.py thread_attention tests

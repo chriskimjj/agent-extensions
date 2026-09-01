@@ -135,6 +135,8 @@
   별도 `plugins/` 설치물을 보존하지만 플러그인 코드를 자동 갱신하지 않으며, 현재
   하위 디렉터리 설치본에는 `.git`이 없어 `hermes plugins update`도 사용할 수 없다.
   고정 커밋 재설치 절차는 [DEPLOYMENT.md](DEPLOYMENT.md)가 소유한다.
+- 공개 저장소의 plugin 전용 CI는 Linux Python 3.11~3.13, macOS 3.11,
+  Windows 3.11에서 단위 테스트·Ruff·bytecode compile을 실행하도록 구성했다.
 
 ## 라이브 상태
 
@@ -154,6 +156,9 @@
 - 공유 배포에서 플러그인 자체 업데이트를 자동화할 필요가 있으면 Hermes 하위 디렉터리
   updater 개선 또는 독립 root mirror 중 하나를 별도 결정하기. 그 전의 정식 절차는
   고정 커밋 `--force` 재설치다.
+- 공개 릴리스 tag 전에 플러그인 재배포 license를 명시하기. 현재 저장소 표기는
+  `Not declared`이며, 이는 코드 공개와 타인의 재사용 허가를 구분하기 위한 남은
+  사용자 결정이다.
 - 그 검증과 별도 라이브 배포 승인이 모두 끝난 뒤에만 `#hermes-review`의 실제 채널
   ID를 정하고 백업·설치·활성화·Discord 스모크·롤백을 수행하기
 

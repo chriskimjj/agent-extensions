@@ -33,6 +33,8 @@ Gate conditions:
 
 - The feature source, tests, and release manifest live only in this plugin
   directory.
+- The plugin has an explicit redistribution license before a public release is
+  tagged; repository visibility alone is not treated as reuse permission.
 - Installing or rolling back the feature does not patch, replace, or require a
   personal fork of Hermes source files.
 - Every strict command and history guarantee has a passing behavior test on the
