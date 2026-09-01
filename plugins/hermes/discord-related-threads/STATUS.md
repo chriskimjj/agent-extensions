@@ -140,7 +140,7 @@
   metadata를 포함한 검증 run은
   [33473470921](https://github.com/chriskimjj/agent-extensions/actions/runs/33473470921)이다.
 - 공개 재사용 조건은 plugin manifest와 전용 `LICENSE`에 MIT로 명시했다.
-- 후보 Hermes의 실제 `hermes plugins doctor --ci`에서 manifest v2, 1 tool과 4 hooks의
+- 후보 Hermes의 실제 `hermes plugins doctor --ci`에서 manifest, 1 tool과 4 hooks의
   선언·등록 일치가 통과했다. 현재 공식 Hermes에서는 두 신규 hook을 unknown으로
   명시적으로 거부하므로, 병합 전 host를 지원하는 것처럼 오인하지 않는다.
 

@@ -11,7 +11,6 @@ class DistributionMetadataTest(unittest.TestCase):
     def test_manifest_declares_public_surface_and_mit_license(self):
         manifest = (PLUGIN_ROOT / "plugin.yaml").read_text(encoding="utf-8")
         for declaration in (
-            "manifest_version: 2",
             "api_version: 1",
             "license: MIT",
             "  - discord_thread_links",

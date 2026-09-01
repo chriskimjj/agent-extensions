@@ -53,7 +53,7 @@
 `skip`되며, 같은 원본 메시지 ID가 history filter에서 제외되는 흐름을 확인했다. 두
 스모크 모두 LLM이나 라이브 Discord를 호출하지 않았다.
 
-후보 host를 `PYTHONPATH`로 고정한 실제 `hermes plugins doctor --ci`는 manifest v2를
+후보 host를 `PYTHONPATH`로 고정한 실제 `hermes plugins doctor --ci`는 manifest를
 읽고 1개 tool과 4개 hook의 선언·등록이 일치한다고 판정했다. 같은 plugin을 현재
 공식 host에서 검사하면 `gateway_control_message`와 `gateway_history_message`를
 unknown으로 거부했다. 이는 compatibility probe가 병합 전 host에서 fail closed하는
