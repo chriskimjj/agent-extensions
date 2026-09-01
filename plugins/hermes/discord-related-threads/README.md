@@ -9,10 +9,14 @@ review digest. Recognized control commands are handled before agent dispatch and
 do not call an LLM.
 
 Thread attention is opt-in and defaults to disabled. Installing the code alone
-does not collect threads or send Discord messages. Enabling it also requires the
-paired generic Hermes gateway boundaries described in
-[ARCHITECTURE.md](ARCHITECTURE.md) and a configured Discord channel ID; use
-[DEPLOYMENT.md](DEPLOYMENT.md) for installation and rollback.
+does not collect threads or send Discord messages. The current `1.1.0`
+development proof now uses stock lifecycle APIs, but its two strict routing and
+history hooks, pre-dispatch authorization payload, and three Discord adapter
+queries are not yet in a declared official compatibility floor. It is therefore
+not yet the plugin-only release.
+The supported release target is one plugin on an unmodified official Hermes
+version, plus a configured Discord channel ID; see
+[ARCHITECTURE.md](ARCHITECTURE.md) and [NEXT.md](NEXT.md).
 
 ## Install from the collection
 
@@ -22,10 +26,11 @@ Hermes supports installing a plugin from a repository subdirectory:
 hermes plugins install chriskimjj/agent-extensions/plugins/hermes/discord-related-threads
 ```
 
-This command installs only the plugin portion. Do not enable thread attention
-until the matching Hermes core revision is installed and validated. The live
-profile path `~/.hermes/plugins/discord-related-threads` remains a deployment
-target; development and review happen in this Git directory.
+This is the intended final installation command. Do not enable thread attention
+from the current development revision until [STATUS.md](STATUS.md) records a
+stock-Hermes compatibility floor and a passing plugin-only install smoke. The
+live profile path `~/.hermes/plugins/discord-related-threads` remains a
+deployment target; development and review happen in this Git directory.
 
 The exact command grammar, feature configuration, and digest behavior live in
 [SPEC.md](SPEC.md). The default review-channel name is `#hermes-review`, but the
@@ -53,9 +58,10 @@ Each fact has one authoritative document.
 The active architectural decisions are
 [ADR-0001: automatic inventory with optional reminders](docs/adr/0001-auto-inventory-with-optional-reminders.md)
 and
-[ADR-0003: standalone plugin source in the extensions monorepo](docs/adr/0003-standalone-plugin-source-in-extensions-monorepo.md).
-ADR-0003 supersedes ADR-0002's former source-placement decision while retaining
-the generic Hermes history boundary. The earlier manual-stamp-only design is
+[ADR-0004: one plugin for stock Hermes](docs/adr/0004-stock-hermes-plugin-distribution.md).
+ADR-0004 keeps this extensions monorepo as the source while rejecting a
+maintained Hermes fork or coordinated core-patch release. The earlier
+manual-stamp-only design is
 kept as a local historical record in
 [legacy Hermes Lab ADR-0007](docs/adr/legacy-hermes-lab-0007-explicit-stamps.md).
 

@@ -67,11 +67,17 @@ Chris가 아직 들여다보지 못한 Hermes Discord 작업 쓰레드도 일반
 
 ## 제약
 
-- 기존 Hermes Discord 봇, `discord-related-threads` 플러그인,
-  `pre_gateway_dispatch` 훅, SQLite 기반을 재사용한다.
-- 코어가 계산한 일반 게이트웨이 인증 결과를 훅에 전달하고, 플러그인은 승인된
-  이벤트에만 상태 변경을 적용한다.
-- 두 번째 봇·별도 데몬·Hermes 코어 포크·모델 노출 도구·self-bot을 만들지 않는다.
+- 기존 Hermes Discord 봇, `discord-related-threads` 플러그인, 공식 Hermes 플러그인
+  API와 SQLite 기반을 재사용한다.
+- 릴리스는 수정하지 않은 공식 Hermes의 지원 버전 위에 플러그인 하나만 설치한다.
+  사용자 유지 Hermes 포크, 설치 시 코어 패치, 라이브 코어 파일 교체를 요구하지
+  않는다.
+- 코어가 계산한 일반 게이트웨이 인증 결과를 재사용하고, 플러그인은 승인된
+  이벤트에만 상태 변경을 적용한다. 부족한 호스트 기능은 기능 로직이 아닌 최소
+  범용 계약으로 Hermes upstream에 제안한다.
+- 필요한 공식 호스트 계약이 없는 Hermes 버전에서는 기능을 조용히 축소하거나
+  비공개 adapter monkeypatch로 우회하지 않고 호환성 오류로 활성화를 막는다.
+- 두 번째 봇·별도 데몬·모델 노출 도구·self-bot을 만들지 않는다.
 - 기존 플러그인이 관리하는 쓰레드 관계 기능을 보존한다.
 
 ## 하지 않는 일

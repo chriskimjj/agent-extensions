@@ -20,10 +20,10 @@ automatic inventory collector ────────────────�
 exact one-letter control command                                                  │
           │                                                                       │
           ▼                                                                       │
-gateway_control_message classifier ── keep out of batching / busy-session merge   │
+official pre-coalescing classifier ── keep out of batching / busy-session merge   │
           │                                                                       │
           ▼                                                                       │
-pre_gateway_dispatch hook + core authorization result                             │
+authorized pre-agent plugin boundary                                              │
           │                                                                       │
           ├── update seen/closed state in inventory                               │
           ├── update optional reminder ledger ────────────────────────────────────┤
@@ -47,12 +47,12 @@ ordinary user prompt ───────────────────�
 | 구성요소 | 책임 | 책임이 아닌 것 |
 | --- | --- | --- |
 | Discord | 메시지, 쓰레드 활동·보관 상태 | 사용자의 단순 열람 증명 |
-| Discord 어댑터 | 이벤트 정규화, 전체 참여 ID 기록, 전달 대상 검증, 메타데이터 조회, reaction 수명주기, 모든 히스토리 문맥 경로에서 플러그인이 제공한 범용 제외 판정 적용 | 관심 필요 여부 추론, 제어 명령 문법·장부 소유 |
+| 공식 Hermes Discord 호스트 | 이벤트 정규화, 일반 권한 결정, 문서화된 plugin handler·action·task 연결, 제어 메시지의 병합 전 분리, 모든 히스토리 문맥 경로의 메시지-ID 포함 판정 | 관심 필요 여부 추론, 제어 명령 문법·장부 소유 |
 | 최초 가져오기 작업 | 영속 참여 기록 전체의 메타데이터 멱등 등록, 링크 가능 상태 확인, 1회 결과 요약 | 메시지 원문 복사, 과거 쓰레드 keepalive |
 | 자동 인벤토리 수집기 | Hermes 참여 쓰레드의 멱등 등록, 작업 활동 신호·확인 기준점 갱신, 자동 발견 기준 계산 | 원문 요약, keepalive |
-| 범용 게이트웨이 훅 | 제어 이벤트의 batch·busy-session 병합 방지, 코어 권한 결과 전달, 참여·전송·시작·종료 신호와 히스토리 제외 질의 | 플러그인별 명령 문법·장부 상태 |
-| `pre_gateway_dispatch` 훅 | 한/영 키 정규화, 인식된 제어 명령에 코어 권한 결과 적용, 단락 처리, 처리 결과 reaction 전환 | 일반 대화 추론 |
-| `discord-related-threads` 플러그인 | 기존 관계 저장, 인벤토리·재알림 상태, 히스토리 제외 ID·판정, 고정 확인 템플릿 호스팅 | Hermes 코어 라우팅, 어댑터 내부 monkeypatch, 확인 문장 생성용 LLM |
+| 공식 플러그인 API | native platform handler, supervised task, unload cleanup, normalized event와 capability-gated action을 안정된 계약으로 제공 | 플러그인별 명령 문법·장부 상태 |
+| 최소 upstream 호스트 계약 | strict 요구사항에 필요한 병합 전 분류, 일반 인증 결과 재사용, 메시지-ID 히스토리 판정을 플러그인 불가지 범용 계약으로 제공 | thread-attention 정책·상태·Discord 문구 |
+| `discord-related-threads` 플러그인 | 기존 관계 저장, Discord 관찰·메타데이터 조회, worker 수명주기, 인벤토리·재알림·전달·히스토리 제외 장부, 명령 처리와 고정 템플릿 | Hermes private adapter monkeypatch, 코어 소스 교체, 확인 문장 생성용 LLM |
 | 쓰레드 인벤토리 | 발견·활동·확인 기준점·종료 상태의 기계적 진실 | 실제 읽음 여부, 대화 전문 |
 | 재알림 장부 | 사용자가 명시한 다시 볼 시점 | 자동 발견 상태, 전달 증명 |
 | 검토 작업 | 두 후보군 중복 제거, 3일 재노출 제한, 5+5 가변 배분, 신규 3·과거 2 기본 배분, 메타데이터 기반 한 줄 항목과 초과 개수 생성 | keepalive, 메시지 본문·전수 내용 요약 |
@@ -63,8 +63,8 @@ ordinary user prompt ───────────────────�
 
 ## 보안 경계
 
-코어는 일반 게이트웨이 인증 결정을 한 번 계산한 뒤, 실제 차단·pairing보다 앞서
-`pre_gateway_dispatch`에 불변 `is_authorized` 결과를 전달한다. 플러그인은 이 값이
+공식 Hermes 호스트는 일반 게이트웨이 인증 결정을 한 번 계산한 뒤, 에이전트 진입
+전의 플러그인 경계에 불변 권한 결과를 전달한다. 플러그인은 이 값이
 명시적으로 참인 Discord 쓰레드 명령만 장부에 적용하고, 권한 정책을 복제하거나
 어댑터의 비공개 인증 메서드를 호출하지 않는다. 장부에는 토큰, 메시지 본문, 대화
 내용이 아닌 최소 식별자와 상태만 둔다.
@@ -125,51 +125,72 @@ static config → DB integrity/schema → Discord channel validation
 이 일일 갱신은 메시지 히스토리 스캔을 생략한다. 최초 가져오기 때만 제한된 최근
 메시지의 작성자·시각을 확인하고 본문은 반환하거나 저장하지 않는다.
 
-## 범용 코어 연결 계약
+## 공식 호스트 호환 계약
 
-Hermes 코어와 플러그인 사이의 공개 경계는 다음과 같다. 동기 분류·제외 훅은
-awaitable을 허용하지 않고, 생명주기 훅은 동기·비동기 callback을 모두 허용한다.
+지원 릴리스는 수정하지 않은 공식 Hermes가 제공하는 문서화된 plugin surface만
+사용한다. 현재 stock surface에서 우선 재사용할 대상은 다음과 같다.
 
-| 경계 | 방향 | 계약 |
-| --- | --- | --- |
-| `gateway_control_message` | 어댑터 → 플러그인 | `platform`, `event`를 읽기 전용으로 분류한다. 참이면 batch와 바쁜 세션의 일반 텍스트 병합을 피하고 Discord 기본 reaction 대신 플러그인 수명주기를 쓴다. 주장한 플러그인은 같은 이벤트를 pre-dispatch에서 소비해야 한다. |
-| `pre_gateway_dispatch` | runner → 플러그인 | `event`, `gateway`, `session_store`, 공개 `adapter`, 계산된 `is_authorized`를 전달한다. 인식된 명령은 `skip`으로 일반 에이전트 경로를 끝낸다. |
-| `gateway_history_message` | Discord 어댑터 → 플러그인 | 정규화한 메시지·작성자·쓰레드 메타데이터로 제외 여부를 묻는다. 등록 callback 오류는 해당 메시지만 fail-closed 제외한다. |
-| `gateway_thread_participation` | tracker → 플러그인 | 영속 참여 ID가 관찰됐음을 알린다. tracker 저장은 callback 성공 여부에 의존하지 않는다. |
-| `post_gateway_delivery` | 어댑터 → 플러그인 | 성공한 일반 Hermes 응답의 이벤트, 반환 메시지 ID와 UTC 전달 시각을 알린다. |
-| `gateway_started` / `gateway_stopping` | runner → 플러그인 | 연결된 어댑터 map과 함께 worker를 시작하고, 어댑터 종료 전 제한 시간 안에 정리한다. |
+| 공식 surface | 플러그인 용도 |
+| --- | --- |
+| `pre_gateway_dispatch` 계열 정책 경계 | 인식된 제어 메시지를 에이전트·LLM 경로 전에 소비 |
+| `register_platform_handler("discord", ...)` | 연결 시점에 Discord native event를 관찰하고 공개 SDK로 메타데이터를 조회 |
+| `spawn_task(...)`와 unload cleanup | 전달 worker, 최초 가져오기와 일일 scheduler의 수명주기 관리 |
+| `gateway_platform_event` | 정규화되어 제공되는 쓰레드 생성·이름 변경 등 관찰 |
+| capability-gated platform actions | 지원되는 reaction 같은 Discord 동작 수행 |
 
-Discord 어댑터는 `participating_thread_ids()`,
-`validate_delivery_target(channel_id)`,
-`resolve_thread_metadata(thread_id, include_activity_history=...)`를 공개한다. 플러그인은
-이 API와 기존 `send()`만 사용하며 Discord 어댑터 내부 구현을 패치하지 않는다.
+strict 사양을 위 surface만으로 증명하지 못하는 경우에는 다음 **능력**만 Hermes
+upstream에 일반 계약으로 제안한다.
+
+- 정확한 제어 메시지를 Discord text batch와 busy-session 병합 전에 읽기 전용으로
+  분류하는 능력
+- 일반 Hermes와 같은 인증 결정을 복제 없이 인증 후 plugin consume 경계에서 쓰는 능력
+- Discord 히스토리를 조립하는 모든 경로에서 메시지 ID별 포함 여부를 묻는 능력
+
+현재 플러그인이 검증하는 최소 계약 초안은 아래와 같다. 이름이나 payload가 upstream
+검토에서 달라질 수는 있지만, 그 경우 공식 릴리스 전에 플러그인의 얇은 연결부와
+compatibility probe를 함께 바꾼다. 의미를 축소해 맞춘 척하지 않는다.
+
+| 계약 초안 | 필요한 의미 |
+| --- | --- |
+| `PluginContext.supports_hook(name) -> bool` | 단순 등록 허용 여부가 아니라 해당 공식 Hermes가 그 hook의 fire-site와 공개 payload를 실제 제공하는지 판정한다. |
+| 동기 `gateway_control_message` 분류 | `platform`과 원본 `MessageEvent`를 받고, Discord debounce·text batch·busy-session merge 전에 호출된다. `true`인 이벤트는 내용이 합쳐지지 않은 채 기존 `pre_gateway_dispatch`로 정확히 한 번 간다. |
+| 확장된 `pre_gateway_dispatch` payload | 기존 skip/rewrite/allow 의미를 유지하면서, core가 한 번 계산한 불변 `is_authorized`와 해당 공개 adapter를 함께 준다. 플러그인은 인증 규칙을 다시 구현하지 않는다. |
+| 동기 `gateway_history_message` 필터 | `platform`, `message_id`, 작성자 self/authorization 여부, chat 종류와 내용을 받고, Discord history/backfill/session 복원 등 에이전트 문맥을 만드는 모든 경로에서 호출된다. 제외 판정이나 필터 오류가 난 한 메시지는 문맥에 들어가지 않는다. |
+| Discord `participating_thread_ids()` | Hermes의 영속 참여 tracker 전체를 안정된 ID snapshot으로 반환한다. 플러그인 설치 시점보다 오래된 항목도 포함하며 임의의 최근 N개 제한으로 잘리지 않는다. |
+| Discord `resolve_thread_metadata(id, include_activity_history=...)` | 본문을 저장하지 않고 접근 가능 여부, guild/parent/thread 이름, 보관 상태·정책·시각과 필요한 경우 제한된 최근 활동 시각만 반환한다. |
+| Discord `validate_delivery_target(id)` | 실제 전송 전에 채널 존재와 조회·전송 가능 여부를 구조화된 결과로 검증한다. 기존 공개 `send(...)`가 전송을 담당한다. |
+
+플러그인은 지원하는 공식 계약을 시작 때 probe한다. 하나라도 없으면 기존 관계 기능은
+유지하되 thread attention 활성화를 거부하고 필요한 호환 조건을 한 번 기록한다.
+private adapter 접근, 메시지 삭제, 인증 규칙 복제 또는 기능 축소를 호환성 대체재로
+사용하지 않는다.
 
 ## 소스와 배포 경계
 
-사람이 읽는 제품·사양·아키텍처 계약과 플러그인 구현 코드의 권위는
-`agent-extensions` Git 저장소의 이 디렉토리에 함께 둔다. Hermes Agent 코어의 범용
-연결부만 전용 기능 브랜치와 깨끗한 worktree에 두며, 현재 대상은
-`feat/discord-predispatch-thread-routing` 브랜치의
-`~/.hermes/worktrees/discord-predispatch-thread-routing`이다.
+사람이 읽는 제품·사양·아키텍처 계약과 전체 기능 구현 코드의 권위는
+`agent-extensions` Git 저장소의 이 디렉토리에 함께 둔다. 릴리스는 공식 Hermes의
+호환 버전과 이 플러그인 커밋 하나로 재현한다.
 
 - 도메인 기능, 상태, 플러그인 단위·통합 테스트는
   `plugins/hermes/discord-related-threads/`가 소유한다.
-- Hermes Agent 변경은 플러그인별 명령을 알지 못하는 범용 제어 분류,
-  pre-dispatch 권한 결과, 히스토리 제외, 참여·성공 전달 신호, 비동기 시작·종료 훅과
-  Discord 공개 메타데이터 API로 제한한다. 그 코어 테스트는 Hermes Agent worktree가
-  소유하며, 플러그인은 어댑터의 비공개 필드나 메서드를 monkeypatch하지 않는다.
-- 라이브 `~/.hermes/plugins/discord-related-threads`와
-  `~/.hermes/hermes-agent`는 개발 권위가 아니라 검증된 산출물의 배포 대상이다.
-  라이브 파일에서 먼저 수정한 뒤 개발본으로 역복사하지 않는다.
-- 플러그인과 코어 변경은 각자 소유 저장소에서 테스트하고, 함께 필요한 변경은 두
-  출처 커밋을 배포 manifest에 고정한다. 통과 전에는 라이브 파일·DB, 게이트웨이와
-  Discord를 변경하지 않는다.
+- 부족한 호스트 계약은 플러그인별 명령과 정책을 모르는 최소 upstream Hermes 기여로
+  분리한다. upstream에 합쳐진 공식 버전을 지원 기준으로 삼고, 그 변경의 Git SHA나
+  patch를 플러그인 배포 묶음에 넣지 않는다.
+- 라이브 `~/.hermes/plugins/discord-related-threads`는 검증된 플러그인 산출물의 배포
+  대상이고, `~/.hermes/hermes-agent`는 수정하지 않는 공식 호스트 환경이다. 라이브
+  파일에서 먼저 수정한 뒤 개발본으로 역복사하지 않는다.
+- 플러그인 manifest는 플러그인 SHA와 지원 공식 Hermes 계약·버전을 기록한다. 설치는
+  Hermes Agent 소스가 수정되지 않았음을 확인하며, 통과 전에는 라이브 파일·DB,
+  게이트웨이와 Discord를 변경하지 않는다.
+- 로컬 `feat/discord-predispatch-thread-routing`의 `b20695a4cb`는 두 출처 개발 증명의
+  재현과 upstream contract 축소에만 쓰는 evidence다. 개인 fork로 보존하거나 live에
+  적용하지 않는다.
 - Git 개발본에는 자동 인벤토리와 재알림이 구현되어 있지만 라이브 플러그인에는 아직
   설치하지 않았다. 정확한 코드·DB 백업, 설치와 롤백 순서는
   [DEPLOYMENT.md](DEPLOYMENT.md)를 따른다.
 
 이 경계의 근거와 결과는
-[ADR-0003](docs/adr/0003-standalone-plugin-source-in-extensions-monorepo.md)에 둔다.
+[ADR-0004](docs/adr/0004-stock-hermes-plugin-distribution.md)에 둔다.
 
 ## 실패와 동시성 원칙
 
@@ -206,10 +227,9 @@ Discord 어댑터는 `participating_thread_ids()`,
 - DB 실패나 원본 제외 ID 커밋 전 중단 창은 권한 있는 사용자의 메시지에 동일한
   결정적 제어 명령 시도 판별기를 읽기 전용으로 다시 적용해 막는다. 이 보조 판별은
   명령 상태를 실행하거나 전달 의무를 만들지 않는다.
-- 범용 히스토리 제외 연결부가 없거나 오류를 반환하면 플러그인 제어 명령을 일반
-  LLM 입력으로 허용하는 방향으로 조용히 실패해서는 안 된다. 원본 실시간 진입은
-  기존 `pre_gateway_dispatch` 단락을 유지하고, 히스토리 수집은 해당 메시지를
-  제외한 채 원인을 로컬 운영 로그에 남긴다.
+- 필요한 공식 호스트 계약이 없으면 지원되는 척 조용히 실패해서는 안 된다. 호환성
+  probe는 thread attention 활성화를 거부하고 원인을 로컬 운영 로그에 남기며,
+  운영자는 지원 공식 Hermes 버전으로 올리기 전 기능을 사용하지 않는다.
 - 설정 오류 상태에서도 같은 fail-closed 경계를 유지한다. 인식된 제어 명령은
   도메인 상태를 바꾸지 않고 고정 오류로 끝내며 일반 에이전트 경로로 되돌리지 않는다.
 - 히스토리 제외 ID는 개수 기반 퇴거나 자동 TTL을 두지 않는다. 조회 시 DB 인덱스나

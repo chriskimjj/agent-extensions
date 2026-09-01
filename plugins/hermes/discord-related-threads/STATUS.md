@@ -1,6 +1,6 @@
 # Current status
 
-기준일: 2026-08-30
+기준일: 2026-09-01
 
 ## 합의됨
 
@@ -47,11 +47,11 @@
   사용한다.
 - 검토 전용 Discord 채널의 권장 이름은 `#hermes-review`로 정했다. 런타임은 이름을
   검색하거나 채널을 자동 생성하지 않고 설정된 `digest_channel_id`만 사용한다.
-- 사람이 읽는 계약과 플러그인 구현 코드는 `agent-extensions`의
-  `plugins/hermes/discord-related-threads`가 소유한다. 깨끗한
-  `feat/discord-predispatch-thread-routing` Hermes Agent worktree에는 플러그인 전용
-  로직 대신 범용 게이트웨이 훅과 Discord 공개 adapter API만 둔다. 라이브
-  `~/.hermes` 경로는 테스트된 산출물의 배포 대상으로만 취급한다.
+- 사람이 읽는 계약과 기능 구현은 `agent-extensions`의
+  `plugins/hermes/discord-related-threads`가 단독 소유한다. 지원 릴리스는 수정하지
+  않은 공식 Hermes의 호환 버전에 플러그인 하나만 설치하며, 개인 Hermes 포크나
+  설치 시 코어 패치를 배포 의존성으로 두지 않는다. 필요한 새 호스트 기능은
+  플러그인별 정책을 모르는 최소 범용 upstream 계약으로만 제안한다.
 - 배포는 출처 커밋·파일 해시를 고정한 묶음만 사용하고, 게이트웨이를 멈춘 뒤 코드와
   SQLite를 백업한다. DB 마이그레이션은 추가 전용이며, 정상 코드 롤백 때 새 스키마는
   남기고 DB 무결성이 깨졌을 때만 백업 DB를 복원한다.
@@ -70,7 +70,7 @@
   연다. 준비 완료일의 오전 9시가 지났으면 그날 보충 다이제스트를 한 번 실행하고
   과거 날짜별 다이제스트는 재생하지 않는다.
 
-## 개발본에서 구현·검증됨
+## 두 출처 개발 증명에서 구현·검증됨
 
 - 플러그인 `1.1.0`은 기존 관계 도구·footer를 유지하면서 설정 parser, 추가 전용
   SQLite schema, 인벤토리·재알림·히스토리 제외·전달 장부 repository를 구현한다.
@@ -82,7 +82,7 @@
   `외 N개`, 빈 다이제스트를 포함한 메타데이터 전용 렌더링이 구현되어 있다.
 - 전달 장부는 최소 한 번 전송, 1분·5분·30분·3시간 재시도, 전날 다이제스트 대체,
   원본 전달 중단 경고와 다이제스트 채널 장애 1회 기록·복구 경고를 구현한다.
-- Hermes 코어 기능 브랜치는 범용 `gateway_control_message`,
+- 개발 증명용 Hermes 코어 기능 브랜치는 범용 `gateway_control_message`,
   `pre_gateway_dispatch`, `gateway_history_message`, `gateway_thread_participation`,
   `post_gateway_delivery`, `gateway_started`, `gateway_stopping` 경계와 Discord 공개
   메타데이터·전달 대상 검증 API를 제공한다.
@@ -91,15 +91,32 @@
   `git diff --check`도 통과했다.
 - 실제 Hermes `PluginContext`로 개발 플러그인을 교차 로드한 임시 프로필 스모크에서
   7개 게이트웨이 경계 등록, 명령 선점과 원본 히스토리 제외가 함께 통과했다.
-- 검증한 플러그인 출처는 원격 main의 `0bd2f8d`, 대응 Hermes 코어 출처는 로컬 기능
-  브랜치의 `b20695a4cb`다. 코어 upstream은 현재 계정에 read-only이고 사용자 fork가
-  없어 코어 커밋은 아직 원격에 없다. 상세 결과는
+- 검증한 플러그인 출처는 원격 main의 `0bd2f8d`, 대응 개발 증명용 Hermes 코어
+  출처는 로컬 기능 브랜치의 `b20695a4cb`다. 이 코어 커밋은 원격 보존이나 배포
+  대상이 아니라 stock-Hermes 플러그인 리팩터링의 비교 증거로 남긴다. 상세 결과는
   [개발 검증 기록](evidence/2026-08-30-thread-attention-development-verification.md)에
   남겼다.
 - 기존 공개 `agent-skills` 저장소는 스킬과 플러그인을 함께 담는
   `agent-extensions`로 재구성되었고, `skills/`와 `plugins/hermes/`가 분리되어 있다.
 - 이전 기준선의 임시 프로필 설치와 기존 관계 link/list/unlink 회귀 결과는
   `evidence/`에 보존되어 있다.
+
+## 현재 호환성 차이
+
+- 현재 작업 트리는 lifecycle, live participation과 bot delivery에 쓰던 증명용 훅
+  4개를 등록 경계에서 제거했다. stock `register_platform_handler`, supervised task와
+  unload cleanup으로 시작·관찰·정리를 소유하고, 공개 adapter 계약이 빠지면
+  `compatibility_error`로 활성화를 거부한다.
+- 플러그인 테스트는 46개가 통과했고, 수정하지 않은 공식 Hermes
+  `e60983a697`의 실제 `PluginContext`에서 기존 도구, 남은 hook 4개, Discord handler
+  factory 하나와 기본 비활성 상태를 확인했다. 현재 stock host에는
+  `PluginContext.supports_hook`가 없으므로 probe는 strict 기능의 활성화를 명시적으로
+  거부하며, 기존 관계 기능은 그대로 등록된다. 자세한 결과는
+  [stock lifecycle 검증 기록](evidence/2026-09-01-stock-hermes-lifecycle-refactor.md)에
+  남겼다.
+- strict 요구사항 가운데 pre-coalescing 제어 분류, 일반 Hermes 인증 결과 재사용,
+  모든 히스토리 재구성 경로의 메시지-ID 제외와 참여 ID·메타데이터·전달 대상용
+  공개 Discord adapter 계약은 아직 최소 범용 upstream 계약으로 분리해야 한다.
 
 ## 라이브 상태
 
@@ -109,12 +126,15 @@
 - 따라서 실제 Discord에서의 채널 권한 검증, 최초 가져오기, 명령·reaction,
   다이제스트 전송은 아직 실행하거나 관찰하지 않았다.
 
-## 남은 운영 작업
+## 남은 개발 작업
 
-- 두 출처 커밋을 고정한 배포 manifest와 파일 해시를 만들기
-- 임시 프로필에서 플러그인과 코어를 함께 설치하는 비라이브 스모크 및 evidence 남기기
-- 사용자의 별도 라이브 배포 승인 뒤 `#hermes-review`의 실제 채널 ID를 정하고,
-  백업·설치·활성화·Discord 스모크·롤백 확인을 수행하기
+- 남은 최소 host hook·Discord adapter 계약과 upstream 테스트를 플러그인 정책 없이
+  분리하기
+- 최소 host 계약에 `PluginContext.supports_hook`를 포함하고 지원 Hermes 기준을 정한
+  뒤, 수정하지 않은 임시 Hermes 프로필에서 plugin-only install/activation 스모크와
+  evidence를 남기기
+- 그 검증과 별도 라이브 배포 승인이 모두 끝난 뒤에만 `#hermes-review`의 실제 채널
+  ID를 정하고 백업·설치·활성화·Discord 스모크·롤백을 수행하기
 
 다음 실행 관문은 [NEXT.md](NEXT.md), 정확한 절차는
 [DEPLOYMENT.md](DEPLOYMENT.md)가 소유한다.

@@ -1,33 +1,54 @@
 # Next gate
 
-## 배포 후보 고정과 비라이브 설치 검증
+## Stock-Hermes plugin compatibility refactor
 
-기능 구현과 개발 테스트 다음 관문은 플러그인·Hermes 코어의 두 출처 커밋을 한
-배포 후보로 고정하고, 라이브 `~/.hermes`와 실제 Discord를 건드리지 않는 설치
-스모크 테스트를 통과시키는 것이다.
+The next gate is to turn the verified two-source development proof into one
+installable plugin that runs on an unmodified official Hermes checkout. The
+local prototype core branch is input to this analysis, not a release artifact.
 
-실행 순서:
+Execution order:
 
-1. `agent-extensions`의 플러그인 커밋과
-   `feat/discord-predispatch-thread-routing`의 Hermes 코어 커밋을 원격에 보존한다.
-2. 두 SHA, 대상 파일과 SHA-256을 담은 배포 manifest를 만든다.
-3. 임시 Hermes 프로필에 두 산출물을 함께 설치해 플러그인 발견, 추가 전용 DB
-   마이그레이션, 기존 관계 기능, 기본 비활성 상태를 확인한다.
-4. 가짜 Discord 어댑터를 사용하는 비라이브 활성화 스모크에서 명령 단락,
-   히스토리 제외, 최초 가져오기 재개, 전달 장부와 다이제스트 생성을 확인한다.
-5. 결과와 민감 정보가 제거된 로그를 `evidence/`에 기록한다.
+1. Preserve the now-passing stock lifecycle path: Discord connect uses
+   `register_platform_handler`, background work uses supervised tasks, unload
+   removes native listeners, and bot-authored native messages provide live
+   participation/delivery observations.
+2. Isolate the smallest irreducible host contracts for pre-coalescing control
+   classification, reuse of the normal authorization decision, and message-ID
+   history exclusion, plus the public Discord participation snapshot, metadata
+   lookup and delivery-target validation used for backfill. Specify them
+   generically and prepare focused upstream Hermes tests; do not include
+   thread-attention commands or policy in core.
+3. Preserve the explicit hook-contract probe now present alongside the adapter
+   method probe, and add the small generic `PluginContext.supports_hook` host
+   API it consumes. An unsupported Hermes host must keep the existing relation
+   feature intact but refuse thread-attention activation with an actionable
+   local error instead of silently weakening guarantees.
+4. Install the plugin from its Git subdirectory into a temporary profile backed
+   by an unmodified official Hermes revision. Verify discovery, additive DB
+   migration, default-disabled behavior, command isolation, resumable backfill,
+   durable delivery, and digest creation with a fake Discord boundary.
+5. Record the supported official Hermes contract/revision and sanitized results
+   in `evidence/`.
 
-## 라이브 전환 관문
+Gate conditions:
 
-비라이브 검증이 끝나도 자동으로 라이브에 설치하지 않는다. 사용자가 라이브 배포를
-명시적으로 승인한 뒤에만 [DEPLOYMENT.md](DEPLOYMENT.md)의 백업·설치·롤백 절차를
-실행한다. 그때 운영자가 권장 `#hermes-review` 채널을 선택하거나 만들고 정확한
-`digest_channel_id`를 제공해야 한다.
+- The feature source, tests, and release manifest live only in this plugin
+  directory.
+- Installing or rolling back the feature does not patch, replace, or require a
+  personal fork of Hermes source files.
+- Every strict command and history guarantee has a passing behavior test on the
+  declared official Hermes compatibility floor.
+- The plugin fails activation clearly when a required host contract is absent.
+- The existing relation link/list/unlink behavior and default-disabled posture
+  still pass in a temporary profile.
+- Actual channel IDs, user IDs, tokens, and message bodies are absent from Git
+  and evidence.
+- Live files, databases, gateway processes, and Discord remain unchanged.
 
-관문 통과 조건:
+## Live transition gate
 
-- 두 작업 트리가 커밋 뒤 깨끗하고 원격 SHA로 재현 가능하다.
-- 플러그인 단위 테스트와 변경된 Hermes 코어 회귀 테스트가 모두 통과한다.
-- 임시 프로필에서 기능이 기본 비활성이고 기존 관계 기능이 유지된다.
-- 실제 채널 ID, 사용자 ID, 토큰과 메시지 원문은 Git이나 evidence에 남지 않는다.
-- 라이브 파일·DB·설정, 게이트웨이와 Discord에는 승인 전 변경이 없다.
+Passing the non-live gate does not authorize installation. Only after separate
+live-deployment approval may [DEPLOYMENT.md](DEPLOYMENT.md) be used to back up
+the profile, install the single plugin artifact, select or create the suggested
+`#hermes-review` channel, set its exact `digest_channel_id`, activate the
+feature, run Discord smoke checks, and verify rollback.

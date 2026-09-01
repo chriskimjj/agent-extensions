@@ -14,3 +14,6 @@
 - [2026-08-30 Thread Attention 개발 검증](2026-08-30-thread-attention-development-verification.md):
   플러그인·코어 자동 테스트, 정적 검사와 실제 `PluginContext` 교차 로드 결과를
   기록했다. 라이브 Discord 검증은 포함하지 않는다.
+- [2026-09-01 stock-Hermes lifecycle 리팩터링 검증](2026-09-01-stock-hermes-lifecycle-refactor.md):
+  전용 lifecycle·participation·delivery 훅을 stock platform handler와 supervised
+  task로 대체하고, 수정하지 않은 공식 Hermes에서 plugin registration을 검증했다.

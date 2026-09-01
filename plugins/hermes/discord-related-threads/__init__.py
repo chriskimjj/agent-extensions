@@ -315,8 +315,39 @@ def register(ctx) -> None:
     # plugins.entries.discord-related-threads.thread_attention.enabled is true.
     # The hooks are still registered so existing exclusion-ledger IDs remain
     # filterable if the feature is later disabled.
+    required_host_hooks = (
+        "pre_gateway_dispatch",
+        "gateway_control_message",
+        "gateway_history_message",
+    )
+    required_context_methods = (
+        "register_platform_handler",
+        "spawn_task",
+        "on_unload",
+    )
+    host_contract_issues = []
+    supports_hook = getattr(ctx, "supports_hook", None)
+    if not callable(supports_hook):
+        host_contract_issues.append("hook compatibility probe is missing")
+    else:
+        missing_hooks = [name for name in required_host_hooks if not supports_hook(name)]
+        if missing_hooks:
+            host_contract_issues.append("missing hooks: " + ", ".join(missing_hooks))
+    missing_context_methods = [
+        name for name in required_context_methods if not callable(getattr(ctx, name, None))
+    ]
+    if missing_context_methods:
+        host_contract_issues.append(
+            "missing context methods: " + ", ".join(missing_context_methods)
+        )
+    host_contract_error = (
+        "unsupported Hermes plugin host; " + "; ".join(host_contract_issues)
+        if host_contract_issues
+        else None
+    )
     _THREAD_ATTENTION_RUNTIME = ThreadAttentionRuntime(
-        load_thread_attention_config()
+        load_thread_attention_config(),
+        host_contract_error=host_contract_error,
     )
     ctx.register_hook(
         "pre_gateway_dispatch",
@@ -330,19 +361,22 @@ def register(ctx) -> None:
         "gateway_control_message",
         _THREAD_ATTENTION_RUNTIME.on_control_message,
     )
-    ctx.register_hook(
-        "gateway_thread_participation",
-        _THREAD_ATTENTION_RUNTIME.on_thread_participation,
-    )
-    ctx.register_hook(
-        "post_gateway_delivery",
-        _THREAD_ATTENTION_RUNTIME.on_post_gateway_delivery,
-    )
-    ctx.register_hook(
-        "gateway_started",
-        _THREAD_ATTENTION_RUNTIME.on_gateway_started,
-    )
-    ctx.register_hook(
-        "gateway_stopping",
-        _THREAD_ATTENTION_RUNTIME.on_gateway_stopping,
-    )
+
+    # Stock-Hermes lifecycle and live Discord observation.  The native handler
+    # factory runs only when Discord connects, so plugin registration remains
+    # safe in CLI processes where discord.py is not loaded.
+    register_platform_handler = getattr(ctx, "register_platform_handler", None)
+    spawn_task = getattr(ctx, "spawn_task", None)
+    if callable(register_platform_handler):
+        def wire_discord(native, adapter) -> None:
+            _THREAD_ATTENTION_RUNTIME.on_discord_connected(
+                native=native,
+                adapter=adapter,
+                spawn_task=spawn_task if callable(spawn_task) else None,
+            )
+
+        register_platform_handler("discord", wire_discord)
+
+    on_unload = getattr(ctx, "on_unload", None)
+    if callable(on_unload):
+        on_unload(_THREAD_ATTENTION_RUNTIME.on_unload)

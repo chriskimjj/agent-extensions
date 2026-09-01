@@ -8,6 +8,13 @@
 열린 일을 적절한 시점에 다시 보게 하는 시스템이라는 뜻이다. 문서에서는
 "retention bot"이나 "keepalive bot"을 프로젝트 이름처럼 쓰지 않는다.
 
+### Stock-Hermes 플러그인 릴리스 (Stock-Hermes Plugin Release)
+
+사용자가 공식 Hermes의 지원 버전을 수정하지 않고 이 플러그인 하나만 설치하는
+배포 형태다. 개인 Hermes fork, install-time 코어 patch 또는 두 번째 release artifact를
+뜻하지 않는다. 부족한 범용 호스트 기능을 Hermes upstream에 기여하는 것은 가능하지만,
+그 기여가 공식 버전에 포함되기 전 로컬 코어 브랜치를 릴리스 의존성으로 부르지 않는다.
+
 ### 쓰레드 인벤토리 (Thread Inventory)
 
 Hermes가 만들거나 참여한 쓰레드를 자동으로 기록하는 프로필 로컬 목록이다.

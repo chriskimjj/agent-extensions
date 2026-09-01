@@ -84,6 +84,18 @@ class FakeAdapter:
         )
 
 
+class FakeNativeBot:
+    def __init__(self) -> None:
+        self.user = SimpleNamespace(id="bot-user")
+        self.listeners: dict[str, list] = {}
+
+    def add_listener(self, callback, name: str) -> None:
+        self.listeners.setdefault(name, []).append(callback)
+
+    def remove_listener(self, callback, name: str) -> None:
+        self.listeners.get(name, []).remove(callback)
+
+
 def make_event(text: str, message_id: str = "m1"):
     raw = FakeRawMessage()
     source = SimpleNamespace(
@@ -121,7 +133,7 @@ class RuntimeTest(unittest.IsolatedAsyncioTestCase):
         self.adapter = FakeAdapter()
 
     async def asyncTearDown(self) -> None:
-        await self.runtime.on_gateway_stopping()
+        await self.runtime.shutdown()
         self.temp.cleanup()
 
     async def test_authorized_command_is_skipped_and_delivered_without_llm(self) -> None:
@@ -253,6 +265,85 @@ class RuntimeTest(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(await self.runtime._refresh_metadata_batch())
         self.assertIn(("fresh", False), self.adapter.metadata_calls)
 
+    async def test_stock_discord_listener_records_self_delivery_only(self) -> None:
+        native = FakeNativeBot()
+        self.runtime.state = "active"
+        self.runtime.on_discord_connected(native=native, adapter=self.adapter)
+
+        channel = SimpleNamespace(
+            id="thread-native",
+            parent_id="parent-native",
+            name="Native thread",
+            guild=SimpleNamespace(id="guild-native"),
+        )
+        ordinary = SimpleNamespace(
+            id="native-message",
+            author=SimpleNamespace(id="bot-user"),
+            channel=channel,
+            guild=channel.guild,
+            content="ordinary Hermes response",
+            created_at=NOW,
+        )
+        confirmation = SimpleNamespace(
+            id="native-confirmation",
+            author=SimpleNamespace(id="bot-user"),
+            channel=channel,
+            guild=channel.guild,
+            content="✅ 종료됨\n" + COMMAND_LIST,
+            created_at=NOW,
+        )
+
+        self.runtime.on_native_discord_message(ordinary)
+        self.runtime.on_native_discord_message(confirmation)
+        self.runtime.on_native_discord_thread_create(
+            SimpleNamespace(
+                id="thread-created",
+                parent_id="parent-native",
+                name="Created by Hermes",
+                guild=channel.guild,
+                owner_id="bot-user",
+                created_at=NOW,
+            )
+        )
+
+        row = self.runtime.repository.get_thread("thread-native")
+        self.assertEqual(row["last_hermes_message_id"], "native-message")
+        created = self.runtime.repository.get_thread("thread-created")
+        self.assertEqual(created["thread_name"], "Created by Hermes")
+        self.assertEqual(set(native.listeners), {
+            "on_message",
+            "on_thread_create",
+        })
+        self.runtime.on_unload()
+        self.assertTrue(all(not callbacks for callbacks in native.listeners.values()))
+
+    async def test_missing_public_adapter_contract_refuses_activation(self) -> None:
+        class IncompleteAdapter:
+            async def send(self, *_args, **_kwargs):
+                return None
+
+        self.runtime._adapter = IncompleteAdapter()
+        self.assertFalse(await self.runtime._activate_if_possible())
+        self.assertEqual(self.runtime.state, "compatibility_error")
+        self.assertIn("participating_thread_ids", self.runtime.state_error)
+
+    async def test_missing_hook_contract_refuses_activation_and_drops_command(self) -> None:
+        repo = AttentionRepository(Path(self.temp.name) / "incompatible.sqlite3")
+        runtime = ThreadAttentionRuntime(
+            self.runtime.config,
+            repository=repo,
+            clock=lambda: NOW,
+            host_contract_error="unsupported Hermes plugin host",
+        )
+        self.assertEqual(runtime.state, "compatibility_error")
+        result = runtime.on_pre_gateway_dispatch(
+            event=make_event("!c"),
+            adapter=self.adapter,
+            is_authorized=False,
+        )
+        self.assertEqual(result["action"], "skip")
+        self.assertEqual(self.adapter.sent, [])
+
     async def test_digest_outage_recovery_emits_one_fixed_notice(self) -> None:
         failure = SimpleNamespace(success=False, error_kind="forbidden")
         self.adapter = FakeAdapter(results=(failure,))
@@ -295,11 +386,10 @@ class RuntimeTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_startup_snapshots_backfill_and_sends_summary_plus_digest(self) -> None:
         self.adapter = FakeAdapter(("old", "gone"))
-        # Use a tiny enum-like hashable key, matching Hermes' Platform enum.
-        class DiscordKey:
-            value = "discord"
-
-        await self.runtime.on_gateway_started(adapters={DiscordKey(): self.adapter})
+        self.runtime.on_discord_connected(
+            native=FakeNativeBot(),
+            adapter=self.adapter,
+        )
         for _ in range(200):
             activation = self.runtime._activation_id
             if (

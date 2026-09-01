@@ -60,17 +60,35 @@ class RelationshipBaselineTest(unittest.TestCase):
             [],
         )
 
-    def test_registration_preserves_tool_and_exposes_all_runtime_boundaries(self) -> None:
+    def test_registration_uses_stock_lifecycle_and_only_minimal_host_hooks(self) -> None:
         class FakeContext:
             def __init__(self) -> None:
                 self.tools = []
                 self.hooks = {}
+                self.platform_handlers = {}
+                self.unload_callbacks = []
 
             def register_tool(self, **kwargs) -> None:
                 self.tools.append(kwargs["name"])
 
             def register_hook(self, name, callback) -> None:
                 self.hooks[name] = callback
+
+            def supports_hook(self, name) -> bool:
+                return name in {
+                    "pre_gateway_dispatch",
+                    "gateway_control_message",
+                    "gateway_history_message",
+                }
+
+            def register_platform_handler(self, platform, callback) -> None:
+                self.platform_handlers[platform] = callback
+
+            def spawn_task(self, coro, *, name=None):
+                raise AssertionError("connect-time task must not start at registration")
+
+            def on_unload(self, callback) -> None:
+                self.unload_callbacks.append(callback)
 
         context = FakeContext()
         self.plugin.register(context)
@@ -82,13 +100,14 @@ class RelationshipBaselineTest(unittest.TestCase):
                 "pre_gateway_dispatch",
                 "gateway_history_message",
                 "gateway_control_message",
-                "gateway_thread_participation",
-                "post_gateway_delivery",
-                "gateway_started",
-                "gateway_stopping",
             }.issubset(context.hooks)
         )
+        self.assertEqual(set(context.platform_handlers), {"discord"})
+        self.assertEqual(len(context.unload_callbacks), 1)
         self.assertEqual(self.plugin._THREAD_ATTENTION_RUNTIME.state, "disabled")
+        self.assertIsNone(
+            self.plugin._THREAD_ATTENTION_RUNTIME._host_contract_error
+        )
 
 
 if __name__ == "__main__":

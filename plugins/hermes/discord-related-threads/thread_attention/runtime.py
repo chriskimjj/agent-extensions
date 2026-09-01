@@ -7,7 +7,7 @@ import inspect
 import logging
 from contextlib import suppress
 from datetime import datetime, timezone
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 from .commands import (
     CommandAction,
@@ -68,18 +68,24 @@ class ThreadAttentionRuntime:
         *,
         repository: AttentionRepository | None = None,
         clock=utc_now,
+        host_contract_error: str | None = None,
     ) -> None:
         self.config = config
         self.repository = repository or AttentionRepository()
         self.clock = clock
         self.state = "disabled" if not config.enabled else "starting"
         self.state_error: str | None = None
+        self._host_contract_error = host_contract_error
+        self._host_contract_error_logged = False
         self._adapter: Any = None
-        self._adapters: Mapping[Any, Any] | None = None
         self._activation_id: str | None = None
         self._worker_task: asyncio.Task | None = None
+        self._startup_task: asyncio.Task | None = None
         self._wake: asyncio.Event | None = None
         self._stopping = False
+        self._native: Any = None
+        self._native_listeners: list[tuple[Callable[..., Any], str]] = []
+        self._task_factory: Callable[..., asyncio.Task] | None = None
         self._migration_ok = False
         try:
             self.repository.migrate()
@@ -87,6 +93,9 @@ class ThreadAttentionRuntime:
             if config.enabled and not config.valid:
                 self.state = "config_error"
                 self.state_error = "; ".join(config.errors)
+            elif config.enabled and host_contract_error:
+                self.state = "compatibility_error"
+                self.state_error = host_contract_error
         except Exception as exc:
             self.state = "db_error" if config.enabled else "disabled"
             self.state_error = "database migration failed"
@@ -95,6 +104,16 @@ class ThreadAttentionRuntime:
     @property
     def operational(self) -> bool:
         return self.state == "active"
+
+    def _report_host_contract_error(self) -> bool:
+        if not self._host_contract_error:
+            return False
+        self.state = "compatibility_error"
+        self.state_error = self._host_contract_error
+        if not self._host_contract_error_logged:
+            logger.error("Thread attention compatibility error: %s", self.state_error)
+            self._host_contract_error_logged = True
+        return True
 
     @staticmethod
     def _is_discord_thread(event: object) -> bool:
@@ -108,15 +127,22 @@ class ThreadAttentionRuntime:
             )
         )
 
-    @staticmethod
-    def _spawn(coro: Any) -> asyncio.Task | None:
+    def _spawn(self, coro: Any, *, name: str | None = None) -> asyncio.Task | None:
+        if self._task_factory is not None:
+            try:
+                return self._task_factory(coro, name=name)
+            except Exception:
+                logger.error("Could not spawn supervised plugin task", exc_info=True)
+                if inspect.iscoroutine(coro):
+                    coro.close()
+                return None
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
             if inspect.iscoroutine(coro):
                 coro.close()
             return None
-        return loop.create_task(coro)
+        return loop.create_task(coro, name=name)
 
     async def _add_reaction(self, raw_message: object, emoji: str) -> None:
         callback = getattr(raw_message, "add_reaction", None)
@@ -163,7 +189,141 @@ class ThreadAttentionRuntime:
             self._wake.set()
         if self._worker_task is None or self._worker_task.done():
             if self._adapter is not None and self.config.enabled:
-                self._worker_task = self._spawn(self._worker_loop())
+                self._worker_task = self._spawn(
+                    self._worker_loop(),
+                    name="discord-related-threads:worker",
+                )
+
+    def on_discord_connected(
+        self,
+        *,
+        native: Any,
+        adapter: Any,
+        spawn_task: Callable[..., asyncio.Task] | None = None,
+    ) -> None:
+        """Attach to Discord through documented stock plugin surfaces.
+
+        ``register_platform_handler('discord', ...)`` calls this after the
+        native bot is connected.  The adapter is retained only for documented
+        public methods; native listeners observe live Hermes participation and
+        delivery without dedicated core lifecycle/delivery hooks.
+        """
+
+        self._native = native
+        self._adapter = adapter
+        self._task_factory = spawn_task
+        self._stopping = False
+        if not self.config.enabled:
+            return
+        if self._report_host_contract_error():
+            return
+        self._wire_native_listeners()
+        if self._startup_task is None or self._startup_task.done():
+            self._startup_task = self._spawn(
+                self._start_connected_runtime(),
+                name="discord-related-threads:start",
+            )
+
+    def _wire_native_listeners(self) -> None:
+        native = self._native
+        add_listener = getattr(native, "add_listener", None)
+        if not callable(add_listener) or self._native_listeners:
+            return
+
+        async def on_message(message: Any) -> None:
+            self.on_native_discord_message(message)
+
+        async def on_thread_create(thread: Any) -> None:
+            self.on_native_discord_thread_create(thread)
+
+        for callback, event_name in (
+            (on_message, "on_message"),
+            (on_thread_create, "on_thread_create"),
+        ):
+            add_listener(callback, event_name)
+            self._native_listeners.append((callback, event_name))
+
+    def _remove_native_listeners(self) -> None:
+        native = self._native
+        remove_listener = getattr(native, "remove_listener", None)
+        if callable(remove_listener):
+            for callback, event_name in self._native_listeners:
+                try:
+                    remove_listener(callback, event_name)
+                except Exception:
+                    logger.debug(
+                        "Could not remove Discord plugin listener",
+                        exc_info=True,
+                    )
+        self._native_listeners.clear()
+
+    @staticmethod
+    def _native_thread_fields(value: Any) -> dict[str, Any] | None:
+        channel = getattr(value, "channel", None) or value
+        parent_id = getattr(channel, "parent_id", None)
+        thread_id = getattr(channel, "id", None)
+        if not thread_id or not parent_id:
+            return None
+        guild = getattr(value, "guild", None) or getattr(channel, "guild", None)
+        return {
+            "thread_id": str(thread_id),
+            "scope_id": str(getattr(guild, "id", "") or "") or None,
+            "parent_channel_id": str(parent_id),
+            "thread_name": str(getattr(channel, "name", "") or "") or None,
+        }
+
+    def on_native_discord_message(self, message: Any) -> None:
+        """Observe successful bot-authored Discord messages via discord.py."""
+
+        if not self.operational or self._native is None:
+            return
+        self_user = getattr(self._native, "user", None)
+        author = getattr(message, "author", None)
+        if (
+            self_user is None
+            or getattr(author, "id", None) != getattr(self_user, "id", None)
+            or is_confirmation_template(getattr(message, "content", None))
+        ):
+            return
+        fields = self._native_thread_fields(message)
+        if fields is None:
+            return
+        try:
+            self.repository.record_hermes_activity(
+                thread_id=fields["thread_id"],
+                message_id=str(getattr(message, "id", "") or "") or None,
+                observed_at=getattr(message, "created_at", None) or self.clock(),
+                scope_id=fields["scope_id"],
+                parent_channel_id=fields["parent_channel_id"],
+                thread_name=fields["thread_name"],
+            )
+            self._wake_worker()
+        except Exception:
+            logger.error("Could not record native Discord delivery", exc_info=True)
+
+    def on_native_discord_thread_create(self, thread: Any) -> None:
+        """Record a thread created by the connected Hermes bot."""
+
+        if not self.operational or self._native is None:
+            return
+        self_user = getattr(self._native, "user", None)
+        owner_id = getattr(thread, "owner_id", None)
+        if self_user is None or owner_id != getattr(self_user, "id", None):
+            return
+        fields = self._native_thread_fields(thread)
+        if fields is None:
+            return
+        try:
+            self.repository.record_thread_participation(
+                fields["thread_id"],
+                observed_at=getattr(thread, "created_at", None) or self.clock(),
+                scope_id=fields["scope_id"],
+                parent_channel_id=fields["parent_channel_id"],
+                thread_name=fields["thread_name"],
+            )
+            self._wake_worker()
+        except Exception:
+            logger.error("Could not record native Discord thread", exc_info=True)
 
     def on_pre_gateway_dispatch(self, **kwargs: Any) -> dict[str, str] | None:
         event = kwargs.get("event")
@@ -171,6 +331,12 @@ class ThreadAttentionRuntime:
             return None
 
         attempt = parse_command(getattr(event, "text", None))
+        if attempt is not None and self.state == "compatibility_error":
+            # Best-effort fail closed on an unsupported host.  The release
+            # contract still requires pre-coalescing classification, but an
+            # intact command that reaches this stock hook must never become an
+            # agent turn merely because activation was refused.
+            return {"action": "skip", "reason": "thread-attention-incompatible"}
         authorized = kwargs.get("is_authorized") is True
         fields = _source_fields(event)
         thread_id = fields["thread_id"]
@@ -338,67 +504,11 @@ class ThreadAttentionRuntime:
             and parse_command(getattr(event, "text", None)) is not None
         )
 
-    def on_thread_participation(self, **kwargs: Any) -> None:
-        if not self.operational or _platform_name(kwargs.get("platform")) != "discord":
-            return
-        thread_id = str(kwargs.get("thread_id") or "")
-        if not thread_id:
-            return
-        try:
-            self.repository.record_thread_participation(
-                thread_id,
-                observed_at=kwargs.get("observed_at"),
-                scope_id=str(kwargs.get("scope_id") or "") or None,
-                parent_channel_id=str(kwargs.get("parent_channel_id") or "") or None,
-                thread_name=str(kwargs.get("thread_name") or "") or None,
-            )
-            self._wake_worker()
-        except Exception:
-            logger.error("Could not record thread participation", exc_info=True)
-
-    def on_post_gateway_delivery(self, **kwargs: Any) -> None:
-        event = kwargs.get("event")
-        if (
-            not self.operational
-            or event is None
-            or kwargs.get("success") is not True
-            or not self._is_discord_thread(event)
-            or parse_command(getattr(event, "text", None)) is not None
-        ):
-            return
-        fields = _source_fields(event)
-        thread_id = fields["thread_id"]
-        if not thread_id:
-            return
-        message_ids = [str(value) for value in kwargs.get("message_ids", ()) if value]
-        try:
-            self.repository.record_hermes_activity(
-                thread_id=thread_id,
-                message_id=message_ids[-1] if message_ids else None,
-                observed_at=kwargs.get("delivered_at") or self.clock(),
-                scope_id=fields["scope_id"],
-                parent_channel_id=fields["parent_channel_id"],
-                thread_name=fields["thread_name"],
-            )
-            self._wake_worker(kwargs.get("adapter"))
-        except Exception:
-            logger.error("Could not record Hermes thread activity", exc_info=True)
-
-    def _find_discord_adapter(self, adapters: Mapping[Any, Any] | None) -> Any:
-        if not adapters:
-            return None
-        for platform, adapter in adapters.items():
-            if _platform_name(platform) == "discord":
-                return adapter
-        return None
-
-    async def on_gateway_started(self, **kwargs: Any) -> None:
+    async def _start_connected_runtime(self) -> None:
         if not self.config.enabled:
             return
-        adapters = kwargs.get("adapters")
-        if isinstance(adapters, Mapping):
-            self._adapters = adapters
-        self._adapter = self._find_discord_adapter(self._adapters)
+        if self._report_host_contract_error():
+            return
         if not self._migration_ok:
             self.state = "db_error"
             return
@@ -407,6 +517,8 @@ class ThreadAttentionRuntime:
         self._start_worker()
 
     async def _activate_if_possible(self) -> bool:
+        if self._report_host_contract_error():
+            return False
         if not self.config.valid:
             self.state = "config_error"
             self.state_error = "; ".join(self.config.errors)
@@ -417,12 +529,26 @@ class ThreadAttentionRuntime:
             self.state_error = "Discord adapter is not connected"
             logger.warning("Thread attention waiting for a Discord adapter")
             return False
-        validator = getattr(self._adapter, "validate_delivery_target", None)
-        if not callable(validator):
-            self.state = "config_error"
-            self.state_error = "Discord adapter lacks delivery-target validation"
-            logger.error("Thread attention configuration error: %s", self.state_error)
+        required_methods = (
+            "validate_delivery_target",
+            "participating_thread_ids",
+            "resolve_thread_metadata",
+            "send",
+        )
+        missing = [
+            name
+            for name in required_methods
+            if not callable(getattr(self._adapter, name, None))
+        ]
+        if missing:
+            self.state = "compatibility_error"
+            self.state_error = (
+                "unsupported Hermes Discord plugin contract; missing: "
+                + ", ".join(missing)
+            )
+            logger.error("Thread attention compatibility error: %s", self.state_error)
             return False
+        validator = getattr(self._adapter, "validate_delivery_target")
         try:
             validation = validator(self.config.digest_channel_id)
             if inspect.isawaitable(validation):
@@ -463,21 +589,41 @@ class ThreadAttentionRuntime:
         if self._wake is None:
             self._wake = asyncio.Event()
         if self._worker_task is None or self._worker_task.done():
-            self._worker_task = asyncio.create_task(self._worker_loop())
+            self._worker_task = self._spawn(
+                self._worker_loop(),
+                name="discord-related-threads:worker",
+            )
         self._wake.set()
 
-    async def on_gateway_stopping(self, **kwargs: Any) -> None:
-        self._stopping = True
+    async def shutdown(self) -> None:
+        """Cancel and await runtime-owned tasks for deterministic shutdown."""
+
+        self._stop_background_tasks()
         task = self._worker_task
+        startup = self._startup_task
         self._worker_task = None
-        if task is not None and not task.done():
-            task.cancel()
-            with suppress(asyncio.CancelledError):
-                await task
+        self._startup_task = None
+        for pending in (startup, task):
+            if pending is not None and not pending.done():
+                with suppress(asyncio.CancelledError):
+                    await pending
+
+    def _stop_background_tasks(self) -> None:
+        self._stopping = True
+        for task in (self._startup_task, self._worker_task):
+            if task is not None and not task.done():
+                task.cancel()
+
+    def on_unload(self) -> None:
+        """Release native listeners and background work on plugin unload."""
+
+        self._stop_background_tasks()
+        self._remove_native_listeners()
+        self._native = None
+        self._adapter = None
+        self._task_factory = None
 
     async def _resolve_adapter_if_needed(self) -> None:
-        if self._adapter is None:
-            self._adapter = self._find_discord_adapter(self._adapters)
         if self._adapter is not None and self.state == "starting":
             await self._activate_if_possible()
 

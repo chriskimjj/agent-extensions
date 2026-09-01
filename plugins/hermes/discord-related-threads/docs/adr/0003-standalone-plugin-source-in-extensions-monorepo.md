@@ -1,8 +1,10 @@
 ---
-status: accepted
+status: superseded
 date: 2026-08-29
 supersedes:
   - 0002-plugin-owned-feature-with-generic-history-boundary.md
+superseded_by:
+  - 0004-stock-hermes-plugin-distribution.md
 ---
 
 # Keep standalone plugin source in the extensions monorepo
