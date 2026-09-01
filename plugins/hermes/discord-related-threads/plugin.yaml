@@ -1,4 +1,16 @@
 name: discord-related-threads
 version: "1.1.0"
 description: Manage related Discord threads and an opt-in, metadata-only thread review digest without LLM calls.
+manifest_version: 2
+api_version: 1
+license: MIT
+homepage: https://github.com/chriskimjj/agent-extensions/tree/main/plugins/hermes/discord-related-threads
+tags: [discord, gateway, threads, productivity]
+provides_tools:
+  - discord_thread_links
+provides_hooks:
+  - transform_llm_output
+  - pre_gateway_dispatch
+  - gateway_control_message
+  - gateway_history_message
 requires_env: []

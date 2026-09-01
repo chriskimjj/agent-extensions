@@ -57,7 +57,7 @@ an official compatible Hermes floor.
 | Kind | Extension | Current boundary | Version | License |
 | --- | --- | --- | ---: | --- |
 | Skill | [`e`](skills/e/) | Exact `e`/`E` re-explains the active answer without resuming the task | 0.2.0 | MIT |
-| Hermes plugin | [`discord-related-threads`](plugins/hermes/discord-related-threads/) | Relationship feature retained; thread attention implemented, default-disabled, awaiting official host contract | 1.1.0-dev | Not declared |
+| Hermes plugin | [`discord-related-threads`](plugins/hermes/discord-related-threads/) | Relationship feature retained; thread attention implemented, default-disabled, awaiting official host contract | 1.1.0-dev | MIT |
 
 ## Trust and release boundary
 

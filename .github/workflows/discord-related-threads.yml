@@ -4,11 +4,15 @@ on:
   push:
     branches: [main]
     paths:
-      - "plugins/hermes/discord-related-threads/**"
+      - "plugins/hermes/discord-related-threads/**/*.py"
+      - "plugins/hermes/discord-related-threads/plugin.yaml"
+      - "plugins/hermes/discord-related-threads/LICENSE"
       - ".github/workflows/discord-related-threads.yml"
   pull_request:
     paths:
-      - "plugins/hermes/discord-related-threads/**"
+      - "plugins/hermes/discord-related-threads/**/*.py"
+      - "plugins/hermes/discord-related-threads/plugin.yaml"
+      - "plugins/hermes/discord-related-threads/LICENSE"
       - ".github/workflows/discord-related-threads.yml"
   workflow_dispatch:
 
