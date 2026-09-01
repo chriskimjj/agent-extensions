@@ -182,9 +182,12 @@ private adapter 접근, 메시지 삭제, 인증 규칙 복제 또는 기능 축
 - 플러그인 manifest는 플러그인 SHA와 지원 공식 Hermes 계약·버전을 기록한다. 설치는
   Hermes Agent 소스가 수정되지 않았음을 확인하며, 통과 전에는 라이브 파일·DB,
   게이트웨이와 Discord를 변경하지 않는다.
-- 로컬 `feat/discord-predispatch-thread-routing`의 `b20695a4cb`는 두 출처 개발 증명의
-  재현과 upstream contract 축소에만 쓰는 evidence다. 개인 fork로 보존하거나 live에
-  적용하지 않는다.
+- 과거 로컬 `feat/discord-predispatch-thread-routing`의 `b20695a4cb`는 두 출처 개발
+  증명의 재현과 upstream contract 축소에만 쓰는 evidence다. 축소된 현재 후보는 공식
+  `main` 기반 `bd853a945e`이며
+  [upstream PR #100004](https://github.com/NousResearch/hermes-agent/pull/100004)로
+  제안했다. 개인 fork의 PR 브랜치는 기여 운반 수단일 뿐 지원 host나 live 배포물이
+  아니다.
 - Git 개발본에는 자동 인벤토리와 재알림이 구현되어 있지만 라이브 플러그인에는 아직
   설치하지 않았다. 정확한 코드·DB 백업, 설치와 롤백 순서는
   [DEPLOYMENT.md](DEPLOYMENT.md)를 따른다.

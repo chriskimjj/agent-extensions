@@ -1,32 +1,31 @@
 # Next gate
 
-## Stock-Hermes plugin compatibility refactor
+## Upstream contract merge and official-host verification
 
-The next gate is to turn the verified two-source development proof into one
-installable plugin that runs on an unmodified official Hermes checkout. The
-local prototype core branch is input to this analysis, not a release artifact.
+The minimum generic host contract has been implemented and proposed in
+[NousResearch/hermes-agent#100004](https://github.com/NousResearch/hermes-agent/pull/100004).
+The next gate is an upstream merge followed by plugin-only verification against
+the first unmodified official Hermes revision that contains that contract. The
+PR fork and branch are contribution transport, not release artifacts.
 
 Execution order:
 
-1. Preserve the now-passing stock lifecycle path: Discord connect uses
-   `register_platform_handler`, background work uses supervised tasks, unload
-   removes native listeners, and bot-authored native messages provide live
-   participation/delivery observations.
-2. Isolate the smallest irreducible host contracts for pre-coalescing control
-   classification, reuse of the normal authorization decision, and message-ID
-   history exclusion, plus the public Discord participation snapshot, metadata
-   lookup and delivery-target validation used for backfill. Specify them
-   generically and prepare focused upstream Hermes tests; do not include
-   thread-attention commands or policy in core.
-3. Preserve the explicit hook-contract probe now present alongside the adapter
-   method probe, and add the small generic `PluginContext.supports_hook` host
-   API it consumes. An unsupported Hermes host must keep the existing relation
-   feature intact but refuse thread-attention activation with an actionable
-   local error instead of silently weakening guarantees.
-4. Install the plugin from its Git subdirectory into a temporary profile backed
-   by an unmodified official Hermes revision. Verify discovery, additive DB
-   migration, default-disabled behavior, command isolation, resumable backfill,
+1. Track PR CI and review. Rebase on official `main` as needed, keep the core
+   change generic, and adapt the plugin's thin integration layer if maintainers
+   change a contract name or payload without weakening the strict guarantees.
+2. Do not declare the PR branch, personal fork, or unmerged commit as a supported
+   Hermes floor. After merge, record the first official commit/version that
+   exposes every probed hook and Discord adapter method.
+3. Install a pinned plugin commit from its Git subdirectory into a temporary
+   profile backed by that unmodified official Hermes revision. Verify discovery,
+   additive DB migration, default-disabled behavior, command isolation,
+   resumable backfill,
    durable delivery, and digest creation with a fake Discord boundary.
+4. Verify separately that a Hermes core update preserves the installed plugin
+   and state. Treat plugin code refresh as a separate operation: the current
+   subdirectory installer drops `.git`, so use the pinned reinstall procedure in
+   `DEPLOYMENT.md` until an updater improvement or root-repository mirror is
+   explicitly adopted.
 5. Record the supported official Hermes contract/revision and sanitized results
    in `evidence/`.
 

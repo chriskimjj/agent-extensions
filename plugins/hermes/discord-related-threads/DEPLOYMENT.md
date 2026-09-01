@@ -20,6 +20,33 @@
   덮어쓰지 않는다. 호환성 probe가 실패하면 배포를 중단하고 라이브 소스를 패치해
   우회하지 않는다.
 
+## Hermes와 플러그인 업데이트의 구분
+
+- Hermes 코어와 사용자 플러그인은 서로 다른 설치물이다. `hermes update`가
+  `~/.hermes/hermes-agent`의 공식 코어를 갱신해도
+  `~/.hermes/plugins/discord-related-threads`와 플러그인 SQLite는 별도 경로에 남는다.
+  이것은 **설치 보존**이지 플러그인 코드의 자동 업데이트가 아니다.
+- 호환되는 공식 Hermes로 갱신한 뒤 재시작하면 이미 설치된 같은 플러그인이 새 공식
+  host 계약을 사용할 수 있다. 다만 플러그인의 새 커밋, manifest 또는 DB migration
+  코드는 Hermes 업데이트가 가져오지 않는다.
+- 2026-09-01 임시 프로필 검증에서 저장소 하위 디렉터리 설치는 정상 동작했지만,
+  설치 대상에 `.git`이 보존되지 않았다. 따라서 현재 Hermes의
+  `hermes plugins update discord-related-threads`는
+  `was not installed from git (no .git directory)`로 종료된다.
+- 이 모노레포 배포를 갱신할 때는 이 문서의 백업·호환성 검증을 먼저 수행한 뒤 고정
+  커밋으로 계획된 재설치를 한다.
+
+  ```bash
+  hermes plugins install --force \
+    --ref <agent-extensions의-40자-커밋-SHA> \
+    chriskimjj/agent-extensions/plugins/hermes/discord-related-threads
+  ```
+
+  `--force`는 자동 업데이트 대용으로 무심코 실행하는 명령이 아니다. 게이트웨이를
+  멈추고 기존 플러그인 코드·설정·DB 백업과 manifest 검증을 끝낸 배포 단계에서만
+  사용한다. 장래에 Hermes 하위 디렉터리 updater가 Git 출처 메타데이터를 보존하거나
+  독립 루트 저장소 mirror를 정식 배포 경로로 채택하면 이 제한을 다시 검증한다.
+
 ## 백업 단위
 
 각 실행은 다음과 같은 고유 디렉토리를 사용한다.

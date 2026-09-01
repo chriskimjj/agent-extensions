@@ -17,3 +17,6 @@
 - [2026-09-01 stock-Hermes lifecycle 리팩터링 검증](2026-09-01-stock-hermes-lifecycle-refactor.md):
   전용 lifecycle·participation·delivery 훅을 stock platform handler와 supervised
   task로 대체하고, 수정하지 않은 공식 Hermes에서 plugin registration을 검증했다.
+- [2026-09-01 upstream host 계약 후보 검증](2026-09-01-upstream-host-contract-candidate.md):
+  최소 범용 Hermes 변경, 외부 플러그인 통합 스모크, exact-base 회귀 대조와
+  모노레포 하위 디렉터리 설치·업데이트 동작을 기록했다.

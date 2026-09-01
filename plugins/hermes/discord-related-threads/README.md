@@ -10,10 +10,11 @@ do not call an LLM.
 
 Thread attention is opt-in and defaults to disabled. Installing the code alone
 does not collect threads or send Discord messages. The current `1.1.0`
-development proof now uses stock lifecycle APIs, but its two strict routing and
-history hooks, pre-dispatch authorization payload, and three Discord adapter
-queries are not yet in a declared official compatibility floor. It is therefore
-not yet the plugin-only release.
+development proof now uses stock lifecycle APIs. Its remaining generic host
+contracts are proposed in
+[NousResearch/hermes-agent#100004](https://github.com/NousResearch/hermes-agent/pull/100004),
+but an open PR is not an official compatibility floor. It is therefore not yet
+the plugin-only release.
 The supported release target is one plugin on an unmodified official Hermes
 version, plus a configured Discord channel ID; see
 [ARCHITECTURE.md](ARCHITECTURE.md) and [NEXT.md](NEXT.md).
@@ -31,6 +32,12 @@ from the current development revision until [STATUS.md](STATUS.md) records a
 stock-Hermes compatibility floor and a passing plugin-only install smoke. The
 live profile path `~/.hermes/plugins/discord-related-threads` remains a
 deployment target; development and review happen in this Git directory.
+
+A Hermes core update preserves that separately installed plugin directory, but
+does not update the plugin's own code. The current monorepo-subdirectory install
+also needs a deliberate pinned reinstall instead of `hermes plugins update`;
+the verified distinction and safe procedure live in
+[DEPLOYMENT.md](DEPLOYMENT.md#hermes와-플러그인-업데이트의-구분).
 
 The exact command grammar, feature configuration, and digest behavior live in
 [SPEC.md](SPEC.md). The default review-channel name is `#hermes-review`, but the

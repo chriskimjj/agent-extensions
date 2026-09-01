@@ -116,7 +116,25 @@
   남겼다.
 - strict 요구사항 가운데 pre-coalescing 제어 분류, 일반 Hermes 인증 결과 재사용,
   모든 히스토리 재구성 경로의 메시지-ID 제외와 참여 ID·메타데이터·전달 대상용
-  공개 Discord adapter 계약은 아직 최소 범용 upstream 계약으로 분리해야 한다.
+  공개 Discord adapter 계약을 플러그인 정책 없는 최소 범용 변경으로 분리했다.
+- 후보는 공식 `main` `21b2095d00` 기반 커밋 `bd853a945e`이며
+  [NousResearch/hermes-agent#100004](https://github.com/NousResearch/hermes-agent/pull/100004)로
+  제출했다. 이전 증명용 lifecycle·participation·delivery 훅은 포함하지 않고,
+  `gateway_control_message`, `gateway_history_message`, 확장된 기존
+  `pre_gateway_dispatch`, `PluginContext.supports_hook`와 세 Discord 공개 query만 둔다.
+- 후보 host의 변경 경로 테스트는 155개가 모두 통과했다. 외부 플러그인을 임시
+  `HERMES_HOME`에 로드한 스모크에서는 필수 hook과 Discord factory 등록이 통과했고,
+  활성 설정 스모크에서는 `!ㅊ` 분류, agent dispatch 전 `skip`, 원본 ID의 history
+  제외가 함께 통과했다. 자세한 결과는
+  [upstream 후보 검증 기록](evidence/2026-09-01-upstream-host-contract-candidate.md)에
+  둔다.
+- PR이 아직 병합·릴리스되지 않았으므로 현재 공식 Hermes에는 여전히 strict 계약이
+  없다. 개인 fork 브랜치는 기여 운반 수단이며 설치·배포 호환성 기준으로 사용하지
+  않는다.
+- 공개 모노레포 하위 디렉터리 설치는 임시 프로필에서 성공했다. Hermes 코어 업데이트는
+  별도 `plugins/` 설치물을 보존하지만 플러그인 코드를 자동 갱신하지 않으며, 현재
+  하위 디렉터리 설치본에는 `.git`이 없어 `hermes plugins update`도 사용할 수 없다.
+  고정 커밋 재설치 절차는 [DEPLOYMENT.md](DEPLOYMENT.md)가 소유한다.
 
 ## 라이브 상태
 
@@ -128,11 +146,14 @@
 
 ## 남은 개발 작업
 
-- 남은 최소 host hook·Discord adapter 계약과 upstream 테스트를 플러그인 정책 없이
-  분리하기
-- 최소 host 계약에 `PluginContext.supports_hook`를 포함하고 지원 Hermes 기준을 정한
-  뒤, 수정하지 않은 임시 Hermes 프로필에서 plugin-only install/activation 스모크와
+- upstream PR의 CI·리뷰를 통과시키고, 계약 이름이나 payload가 바뀌면 플러그인의
+  얇은 연결부와 compatibility probe를 함께 맞추기
+- 병합 뒤 해당 계약이 포함된 첫 공식 Hermes 버전·커밋을 지원 기준으로 정하고,
+  수정하지 않은 임시 Hermes 프로필에서 plugin-only install/activation 스모크와
   evidence를 남기기
+- 공유 배포에서 플러그인 자체 업데이트를 자동화할 필요가 있으면 Hermes 하위 디렉터리
+  updater 개선 또는 독립 root mirror 중 하나를 별도 결정하기. 그 전의 정식 절차는
+  고정 커밋 `--force` 재설치다.
 - 그 검증과 별도 라이브 배포 승인이 모두 끝난 뒤에만 `#hermes-review`의 실제 채널
   ID를 정하고 백업·설치·활성화·Discord 스모크·롤백을 수행하기
 
