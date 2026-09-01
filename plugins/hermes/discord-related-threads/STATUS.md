@@ -136,9 +136,13 @@
   하위 디렉터리 설치본에는 `.git`이 없어 `hermes plugins update`도 사용할 수 없다.
   고정 커밋 재설치 절차는 [DEPLOYMENT.md](DEPLOYMENT.md)가 소유한다.
 - 공개 저장소의 plugin 전용 CI는 Linux Python 3.11~3.13, macOS 3.11,
-  Windows 3.11에서 단위 테스트·Ruff·bytecode compile을 모두 통과했다. 첫 검증 run은
-  [33473106680](https://github.com/chriskimjj/agent-extensions/actions/runs/33473106680)이다.
+  Windows 3.11에서 47개 단위 테스트·Ruff·bytecode compile을 모두 통과했다. 배포
+  metadata를 포함한 검증 run은
+  [33473470921](https://github.com/chriskimjj/agent-extensions/actions/runs/33473470921)이다.
 - 공개 재사용 조건은 plugin manifest와 전용 `LICENSE`에 MIT로 명시했다.
+- 후보 Hermes의 실제 `hermes plugins doctor --ci`에서 manifest v2, 1 tool과 4 hooks의
+  선언·등록 일치가 통과했다. 현재 공식 Hermes에서는 두 신규 hook을 unknown으로
+  명시적으로 거부하므로, 병합 전 host를 지원하는 것처럼 오인하지 않는다.
 
 ## 라이브 상태
 

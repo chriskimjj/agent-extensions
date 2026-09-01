@@ -42,6 +42,7 @@
 | `git diff --check` | passed |
 | 외부 플러그인 등록 스모크 | passed |
 | 활성 설정 control/history 통합 스모크 | passed |
+| 후보 host `hermes plugins doctor --ci` | passed |
 | 공개 plugin CI 5개 OS/Python 조합 | passed |
 | broader gateway + plugin-manager 영역 | 7,430 passed, 8 failed, 40 skipped |
 | exact-base 실패 파일 대조 | 같은 8개 실패 재현 |
@@ -52,10 +53,16 @@
 `skip`되며, 같은 원본 메시지 ID가 history filter에서 제외되는 흐름을 확인했다. 두
 스모크 모두 LLM이나 라이브 Discord를 호출하지 않았다.
 
-플러그인 저장소의 commit `0a70bd7b05997b3de5d1071b35f17a2517e46bcf`에서
-[GitHub Actions run 33473106680](https://github.com/chriskimjj/agent-extensions/actions/runs/33473106680)을
+후보 host를 `PYTHONPATH`로 고정한 실제 `hermes plugins doctor --ci`는 manifest v2를
+읽고 1개 tool과 4개 hook의 선언·등록이 일치한다고 판정했다. 같은 plugin을 현재
+공식 host에서 검사하면 `gateway_control_message`와 `gateway_history_message`를
+unknown으로 거부했다. 이는 compatibility probe가 병합 전 host에서 fail closed하는
+의도한 결과다.
+
+플러그인 저장소의 commit `cb4b57dcf32763b2b23a4593d0acd440eaa5dd05`에서
+[GitHub Actions run 33473470921](https://github.com/chriskimjj/agent-extensions/actions/runs/33473470921)을
 실행했다. Ubuntu의 Python 3.11·3.12·3.13, macOS의 Python 3.11, Windows의
-Python 3.11에서 각각 46개 behavior test, Ruff와 bytecode compile이 모두 통과했다.
+Python 3.11에서 각각 47개 behavior test, Ruff와 bytecode compile이 모두 통과했다.
 
 broader 검증은 다음 공식 wrapper로 실행했다.
 
