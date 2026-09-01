@@ -15,4 +15,6 @@ hermes plugins install chriskimjj/agent-extensions/plugins/hermes/discord-relate
 Installation alone does not activate thread attention. Its current development
 revision requires the unmerged generic host contract in
 [NousResearch/hermes-agent#100004](https://github.com/NousResearch/hermes-agent/pull/100004);
-see the plugin's `STATUS.md` before enabling it.
+see the plugin's `STATUS.md` before enabling it. A pinned non-live preview that
+installs both pieces into a dedicated branch and profile is documented in the
+plugin's [`DEPLOYMENT.md`](discord-related-threads/DEPLOYMENT.md#병합-전-프리뷰-설치비릴리스).

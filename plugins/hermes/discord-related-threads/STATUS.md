@@ -52,6 +52,10 @@
   않은 공식 Hermes의 호환 버전에 플러그인 하나만 설치하며, 개인 Hermes 포크나
   설치 시 코어 패치를 배포 의존성으로 두지 않는다. 필요한 새 호스트 기능은
   플러그인별 정책을 모르는 최소 범용 upstream 계약으로만 제안한다.
+- upstream 병합 전에는 정확한 PR SHA를 별도 Hermes Git 브랜치에 적용하고 기본
+  라이브 경로가 아닌 전용 `HERMES_HOME`에 플러그인을 비활성 설치하는 프리뷰만
+  제공한다. 이 경로는 정식 릴리스나 라이브 배포가 아니며, pin·base·대상 파일 또는
+  Doctor 검증이 어긋나면 중단한다.
 - 배포는 출처 커밋·파일 해시를 고정한 묶음만 사용하고, 게이트웨이를 멈춘 뒤 코드와
   SQLite를 백업한다. DB 마이그레이션은 추가 전용이며, 정상 코드 롤백 때 새 스키마는
   남기고 DB 무결성이 깨졌을 때만 백업 DB를 복원한다.
@@ -129,8 +133,9 @@
   [upstream 후보 검증 기록](evidence/2026-09-01-upstream-host-contract-candidate.md)에
   둔다.
 - PR이 아직 병합·릴리스되지 않았으므로 현재 공식 Hermes에는 여전히 strict 계약이
-  없다. 개인 fork 브랜치는 기여 운반 수단이며 설치·배포 호환성 기준으로 사용하지
-  않는다.
+  없다. 개인 fork 브랜치는 지원 설치·배포 호환성 기준으로 사용하지 않는다. 다만
+  [ADR-0005](docs/adr/0005-pinned-pre-merge-preview.md)의 비릴리스 helper는 정확한
+  upstream PR SHA만 임시 검증 입력으로 사용할 수 있다.
 - 공개 모노레포 하위 디렉터리 설치는 임시 프로필에서 성공했다. Hermes 코어 업데이트는
   별도 `plugins/` 설치물을 보존하지만 플러그인 코드를 자동 갱신하지 않으며, 현재
   하위 디렉터리 설치본에는 `.git`이 없어 `hermes plugins update`도 사용할 수 없다.
@@ -148,6 +153,15 @@
   설치된 ID 대상 후보-host Doctor 통과를 확인했다. installer의 manifest-version
   불일치도 이 과정에서 발견해, 기존 Hermes installer와 호환되는 additive metadata
   형식으로 수정했다.
+- 병합 전 프리뷰 helper는 기본 `~/.hermes` 거부, plugin 40자 pin, `preview/`
+  branch 강제, connector 대상 파일 검사, 정확한 PR SHA cherry-pick, 충돌 시 원래
+  branch 복구, `--no-enable` 설치와 profile-scoped Doctor를 구현했다. 플러그인 전체
+  55개 테스트·Ruff·compileall·diff 검사가 통과했다.
+- 최신 공식 Hermes `18a76be124`의 격리 clone에서 connector
+  `bd853a945e`를 helper로 별도 branch에 적용한 뒤 변경 경로 8개 파일·155개 테스트를
+  공식 `scripts/run_tests.sh`로 다시 통과했다. 라이브 checkout·프로필·gateway와
+  Discord는 사용하지 않았다. 상세 결과는
+  [프리뷰 설치기 검증 기록](evidence/2026-09-01-pre-merge-preview-installer.md)에 둔다.
 
 ## 라이브 상태
 
@@ -160,7 +174,7 @@
 ## 남은 개발 작업
 
 - upstream PR의 CI·리뷰를 통과시키고, 계약 이름이나 payload가 바뀌면 플러그인의
-  얇은 연결부와 compatibility probe를 함께 맞추기
+  얇은 연결부, compatibility probe와 프리뷰 pin을 함께 맞추기
 - 병합 뒤 해당 계약이 포함된 첫 공식 Hermes 버전·커밋을 지원 기준으로 정하고,
   수정하지 않은 임시 Hermes 프로필에서 plugin-only install/activation 스모크와
   evidence를 남기기

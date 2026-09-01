@@ -63,7 +63,7 @@ jobs:
         run: python -m unittest discover -s tests -v
 
       - name: Check Python sources
-        run: ruff check __init__.py thread_attention tests
+        run: ruff check __init__.py thread_attention scripts tests
 
       - name: Compile Python sources
-        run: python -m compileall -q __init__.py thread_attention tests
+        run: python -m compileall -q __init__.py thread_attention scripts tests

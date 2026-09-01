@@ -1,8 +1,18 @@
 # Deployment and rollback runbook
 
-이 문서는 검증된 Hermes Discord Thread Attention 구현을 라이브 `~/.hermes`에
-설치하고 실패 시 복구하는 절차의 권위다. 개발·비라이브 검증만 진행하는 동안에는
-이 절차를 실행하지 않는다.
+이 문서는 Hermes Discord Thread Attention의 설치와 복구 절차의 권위다. 정식
+Stock-Hermes 배포와 병합 전 비라이브 프리뷰를 명확히 분리하며, 프리뷰 절차는
+라이브 `~/.hermes` 배포를 허가하지 않는다.
+
+## 배포 경로 구분
+
+| 경로 | 용도 | Hermes 코어 | 프로필 |
+| --- | --- | --- | --- |
+| Stock-Hermes 플러그인 릴리스 | 지원 배포 | 호환 계약이 포함된 수정하지 않은 공식 릴리스 | 백업·승인된 라이브 프로필 가능 |
+| 병합 전 프리뷰 설치 | 현재 전체 기능의 재현·평가 | 검토된 PR 커밋을 별도 Git 브랜치에 고정 적용 | 기본값이 아닌 전용 `HERMES_HOME`만 가능 |
+
+아래 `배포 단위`부터의 일반 규칙은 Stock-Hermes 플러그인 릴리스를 뜻한다. 병합 전
+프리뷰의 유일한 예외와 안전 경계는 바로 다음 절이 소유한다.
 
 ## 배포 단위
 
@@ -19,6 +29,88 @@
 - 설치 과정은 Hermes Agent 코어와 Discord 어댑터 소스 파일을 수정하거나
   덮어쓰지 않는다. 호환성 probe가 실패하면 배포를 중단하고 라이브 소스를 패치해
   우회하지 않는다.
+
+## 병합 전 프리뷰 설치(비릴리스)
+
+이 경로는 [upstream PR #100004](https://github.com/NousResearch/hermes-agent/pull/100004)가
+병합되기 전에 플러그인과 범용 호스트 연결구를 함께 평가하기 위한 것이다. 정식
+릴리스, 일반 `hermes plugins install`, 라이브 배포 또는 장기 지원 포크가 아니다.
+
+### 전제조건
+
+- `agent-extensions`를 Git으로 clone한 깨끗한 작업 트리에서 실행한다. 기본값으로
+  그 작업 트리의 현재 40자 커밋을 플러그인 원격 설치 pin으로 사용한다.
+- `--hermes-root`는 Git 설치된 Hermes checkout의 루트여야 하고, 그 checkout에
+  속한 venv의 `hermes --version`이 같은 설치 루트를 보고해야 한다.
+- 별도의 깨끗한 Hermes checkout을 권장한다. helper는 connector가 건드리는 파일의
+  변경은 중단하고, 그 밖의 worktree 변경은 개수를 경고한 뒤 stage하지 않은 채
+  그대로 둔다.
+- Hermes `HEAD`는 검증한 연결구 base
+  `21b2095d00a98b8ad7b5c60b10587619c852cdb8`의 후손이어야 한다.
+- `--hermes-home`은 사용자가 명시한 별도 프리뷰 프로필이어야 한다. helper는 기본
+  라이브 경로 `~/.hermes`와 Hermes 소스 트리 내부 경로를 거부한다.
+- 실제 토큰, 채널 ID와 설정은 helper가 읽거나 복사하지 않는다. 프리뷰 프로필에
+  별도로 설정하는 일은 이 설치와 다른 승인 단계다.
+
+### 계획 확인과 실행
+
+저장소 루트에서 먼저 `--apply` 없이 실행한다. 이 단계는 경로, Hermes 실행 파일,
+플러그인 pin과 만들 브랜치를 출력할 뿐 Git fetch나 설치를 수행하지 않는다.
+
+```bash
+python plugins/hermes/discord-related-threads/scripts/install_preview.py \
+  --hermes-root /absolute/path/to/hermes-agent \
+  --hermes-home /absolute/path/to/hermes-preview
+```
+
+Hermes venv가 표준 `.venv`/`venv` 위치가 아니라면 그 checkout에 속한 실행 파일을
+명시한다.
+
+```bash
+python plugins/hermes/discord-related-threads/scripts/install_preview.py \
+  --hermes-root /absolute/path/to/hermes-agent \
+  --hermes-home /absolute/path/to/hermes-preview \
+  --hermes-command /absolute/path/to/hermes \
+  --apply
+```
+
+공개된 특정 플러그인 커밋을 재현하려면 `--plugin-ref`에 전체 40자 SHA를 넣는다.
+생략하면 현재 깨끗한 `agent-extensions` checkout의 `HEAD`를 사용한다.
+
+### helper가 수행하는 일
+
+1. upstream PR ref에서 정확한 연결구 커밋
+   `bd853a945e46cf0cdf24db9530b8a6aa4cc514d2`를 fetch하고 pin이 여전히 그 ref에
+   포함되는지 확인한다.
+2. base ancestry, 진행 중인 Git 작업, 충돌과 연결구 대상 파일의 로컬 변경을
+   fail-closed로 검사한다. 다른 파일의 변경을 커밋에 섞지 않는다.
+3. 연결구가 없다면
+   `preview/discord-related-threads-bd853a945e` 브랜치를 만들고 `cherry-pick -x`로
+   정확한 커밋 하나를 적용한다. 충돌하면 cherry-pick을 abort하고 원래 ref로
+   돌아간다.
+4. 지정한 프리뷰 `HERMES_HOME`에 공개 플러그인 커밋을 `--no-enable --ref`로
+   설치한다.
+5. 설치된 `discord-related-threads`에 `hermes plugins doctor --ci`를 실행한다.
+
+helper는 config를 수정하거나 플러그인을 활성화하지 않고, gateway를 시작·중지하거나
+Discord에 쓰지 않는다. Hermes dependency 설치와 공식 업데이트도 수행하지 않는다.
+Doctor 실패는 사용 가능한 프리뷰로 간주하지 않는다.
+
+### 복구와 중단
+
+- connector 적용 전 실패는 Hermes branch와 프리뷰 프로필을 바꾸지 않는다.
+- cherry-pick 충돌은 자동 abort되고 원래 branch 또는 detached HEAD로 돌아간다.
+- connector 성공 뒤 plugin install 또는 Doctor가 실패하면 helper가 출력한 원래
+  Git ref로 `git switch`한다. 별도 프리뷰 프로필의 플러그인은 활성화되지 않았으므로
+  그대로 두어도 실행되지 않으며, 제거는 원인을 보존·확인한 뒤 별도 수행한다.
+- 성공한 프리뷰를 끝낼 때도 helper가 출력한 원래 Git ref로 돌아가고 해당 프리뷰
+  `HERMES_HOME`으로 Hermes를 실행하지 않는다. 기본 라이브 프로필에는 복구할 변경이
+  없어야 한다.
+- upstream PR이 바뀌어 pin이나 base 검증이 실패하면 새 커밋을 임의로 따라가지 않고,
+  문서·테스트·evidence를 다시 검토해 새 pin을 커밋한다.
+
+이 경로를 제공하기로 한 이유와 정식 릴리스 경계를 유지하는 근거는
+[ADR-0005](docs/adr/0005-pinned-pre-merge-preview.md)가 소유한다.
 
 ## Hermes와 플러그인 업데이트의 구분
 

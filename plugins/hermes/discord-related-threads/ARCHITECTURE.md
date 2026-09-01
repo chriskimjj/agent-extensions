@@ -176,6 +176,11 @@ private adapter 접근, 메시지 삭제, 인증 규칙 복제 또는 기능 축
 - 부족한 호스트 계약은 플러그인별 명령과 정책을 모르는 최소 upstream Hermes 기여로
   분리한다. upstream에 합쳐진 공식 버전을 지원 기준으로 삼고, 그 변경의 Git SHA나
   patch를 플러그인 배포 묶음에 넣지 않는다.
+- 병합 전에는 [ADR-0005](docs/adr/0005-pinned-pre-merge-preview.md)의 비릴리스
+  preview helper만 정확한 upstream PR SHA를 별도 Hermes Git 브랜치에 적용할 수
+  있다. helper는 patch bytes를 플러그인 런타임에 넣지 않고, 기본 라이브 프로필을
+  거부하며, 플러그인을 비활성 설치해 Doctor까지만 수행한다. 이 경로는 지원 host나
+  릴리스 artifact를 하나 더 정의하지 않는다.
 - 라이브 `~/.hermes/plugins/discord-related-threads`는 검증된 플러그인 산출물의 배포
   대상이고, `~/.hermes/hermes-agent`는 수정하지 않는 공식 호스트 환경이다. 라이브
   파일에서 먼저 수정한 뒤 개발본으로 역복사하지 않는다.
@@ -186,14 +191,15 @@ private adapter 접근, 메시지 삭제, 인증 규칙 복제 또는 기능 축
   증명의 재현과 upstream contract 축소에만 쓰는 evidence다. 축소된 현재 후보는 공식
   `main` 기반 `bd853a945e`이며
   [upstream PR #100004](https://github.com/NousResearch/hermes-agent/pull/100004)로
-  제안했다. 개인 fork의 PR 브랜치는 기여 운반 수단일 뿐 지원 host나 live 배포물이
-  아니다.
+  제안했다. PR SHA는 병합 전 프리뷰의 고정 검증 입력일 수 있지만, 개인 fork의
+  브랜치 자체는 지원 host나 live 배포물이 아니다.
 - Git 개발본에는 자동 인벤토리와 재알림이 구현되어 있지만 라이브 플러그인에는 아직
   설치하지 않았다. 정확한 코드·DB 백업, 설치와 롤백 순서는
   [DEPLOYMENT.md](DEPLOYMENT.md)를 따른다.
 
-이 경계의 근거와 결과는
-[ADR-0004](docs/adr/0004-stock-hermes-plugin-distribution.md)에 둔다.
+정식 릴리스 경계의 근거는
+[ADR-0004](docs/adr/0004-stock-hermes-plugin-distribution.md), 병합 전 프리뷰의 제한은
+[ADR-0005](docs/adr/0005-pinned-pre-merge-preview.md)에 둔다.
 
 ## 실패와 동시성 원칙
 

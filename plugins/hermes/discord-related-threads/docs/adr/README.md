@@ -8,6 +8,7 @@ consequences format; superseded records remain for history.
 
 - [ADR-0001: Auto-inventory Hermes threads and keep reminders optional](0001-auto-inventory-with-optional-reminders.md)
 - [ADR-0004: Ship one plugin for stock Hermes instead of a maintained Hermes fork](0004-stock-hermes-plugin-distribution.md)
+- [ADR-0005: Offer a pinned pre-merge preview without redefining the supported release](0005-pinned-pre-merge-preview.md)
 
 ## Superseded history
 

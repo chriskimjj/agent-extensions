@@ -50,6 +50,12 @@ is still under review in
 Do not enable the development feature on a live profile until the plugin records
 an official compatible Hermes floor.
 
+For non-live evaluation before that merge, the plugin includes a pinned preview
+helper that prepares the exact reviewed host connector on a dedicated Hermes
+branch and installs the plugin disabled into a separate profile. It explicitly
+refuses the default `~/.hermes`; see the plugin's
+[preview instructions](plugins/hermes/discord-related-threads/DEPLOYMENT.md#병합-전-프리뷰-설치비릴리스).
+
 [Open the plugin source and project documents.](plugins/hermes/discord-related-threads/)
 
 ## Included extensions

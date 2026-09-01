@@ -8,6 +8,11 @@ The next gate is an upstream merge followed by plugin-only verification against
 the first unmodified official Hermes revision that contains that contract. The
 PR fork and branch are contribution transport, not release artifacts.
 
+The repository also exposes a pinned, non-live pre-merge preview helper so the
+real two-part requirement can be reproduced without hand-patching. Passing that
+preview is evidence for the candidate only; it does not satisfy or replace this
+official-host gate.
+
 Execution order:
 
 1. Track PR CI and review. Rebase on official `main` as needed, keep the core

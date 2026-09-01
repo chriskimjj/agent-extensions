@@ -20,3 +20,6 @@
 - [2026-09-01 upstream host 계약 후보 검증](2026-09-01-upstream-host-contract-candidate.md):
   최소 범용 Hermes 변경, 외부 플러그인 통합 스모크, exact-base 회귀 대조와
   모노레포 하위 디렉터리 설치·업데이트 동작을 기록했다.
+- [2026-09-01 병합 전 프리뷰 설치기 검증](2026-09-01-pre-merge-preview-installer.md):
+  exact PR pin, 전용 branch·profile 경계, 충돌 복구와 최신 공식 Hermes 재적용
+  테스트를 기록했다.
