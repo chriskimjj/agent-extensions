@@ -69,5 +69,23 @@ Hermes가 요구하는 테스트 wrapper와 격리 환경을 사용했다. 임�
 - gateway 시작·중지 또는 live plugin 활성화
 - upstream merge 또는 공식 Hermes 호환성 floor 선언
 
-공개 원격 commit을 이용한 helper 전체 설치와 다중 OS CI 결과는 이 변경을 push한
-뒤 같은 문서에 후속 기록한다.
+## 공개 원격 확인
+
+공개 commit `323e386f660b9c2bc3190d763e91d7eadf085df6`을 새 임시 clone으로 받은 뒤
+helper를 `--apply` 없이 실행했다. helper는 plugin ref를 동일한 공개 40자 SHA로
+해석하고 connector pin·전용 profile·branch 계획을 출력한 뒤 Git fetch나 설치 없이
+종료했다.
+
+[GitHub Actions run 33505771312](https://github.com/chriskimjj/agent-extensions/actions/runs/33505771312)는
+다음 5개 작업에서 모두 통과했다.
+
+- Ubuntu / Python 3.11, 3.12, 3.13
+- macOS / Python 3.11
+- Windows / Python 3.11
+- 각 작업: 55 behavior tests, Ruff, compileall
+
+helper의 `--apply` 전체 경로는 host Git 적용과 plugin install 두 단계로 분리해
+검증했다. 실제 공개 plugin commit의 원격 하위 디렉터리 설치·후보-host Doctor는
+기존 [upstream 후보 검증](2026-09-01-upstream-host-contract-candidate.md), 최신 공식
+Hermes의 connector 적용·회귀는 이 문서의 앞 절이 증명한다. 라이브 profile에서 두
+단계를 합쳐 실행하지 않았다.

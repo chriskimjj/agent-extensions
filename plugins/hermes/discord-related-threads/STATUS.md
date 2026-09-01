@@ -140,10 +140,10 @@
   별도 `plugins/` 설치물을 보존하지만 플러그인 코드를 자동 갱신하지 않으며, 현재
   하위 디렉터리 설치본에는 `.git`이 없어 `hermes plugins update`도 사용할 수 없다.
   고정 커밋 재설치 절차는 [DEPLOYMENT.md](DEPLOYMENT.md)가 소유한다.
-- 공개 저장소의 plugin 전용 CI는 Linux Python 3.11~3.13, macOS 3.11,
-  Windows 3.11에서 47개 단위 테스트·Ruff·bytecode compile을 모두 통과했다. 배포
-  metadata를 포함한 검증 run은
-  [33473668528](https://github.com/chriskimjj/agent-extensions/actions/runs/33473668528)이다.
+- 공개 저장소의 최신 plugin 전용 CI는 Linux Python 3.11~3.13, macOS 3.11,
+  Windows 3.11에서 55개 단위 테스트·Ruff·bytecode compile을 모두 통과했다. 검증
+  run은
+  [33505771312](https://github.com/chriskimjj/agent-extensions/actions/runs/33505771312)이다.
 - 공개 재사용 조건은 plugin manifest와 전용 `LICENSE`에 MIT로 명시했다.
 - 후보 Hermes의 실제 `hermes plugins doctor --ci`에서 manifest, 1 tool과 4 hooks의
   선언·등록 일치가 통과했다. 현재 공식 Hermes에서는 두 신규 hook을 unknown으로
@@ -162,6 +162,8 @@
   공식 `scripts/run_tests.sh`로 다시 통과했다. 라이브 checkout·프로필·gateway와
   Discord는 사용하지 않았다. 상세 결과는
   [프리뷰 설치기 검증 기록](evidence/2026-09-01-pre-merge-preview-installer.md)에 둔다.
+- 공개 commit `323e386f660b9c2bc3190d763e91d7eadf085df6`의 새 clone에서 helper가
+  같은 plugin SHA와 connector pin을 해석하고 plan-only로 무변경 종료했다.
 
 ## 라이브 상태
 
