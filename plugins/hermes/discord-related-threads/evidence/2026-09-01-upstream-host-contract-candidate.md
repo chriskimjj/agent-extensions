@@ -42,6 +42,7 @@
 | `git diff --check` | passed |
 | 외부 플러그인 등록 스모크 | passed |
 | 활성 설정 control/history 통합 스모크 | passed |
+| 공개 plugin CI 5개 OS/Python 조합 | passed |
 | broader gateway + plugin-manager 영역 | 7,430 passed, 8 failed, 40 skipped |
 | exact-base 실패 파일 대조 | 같은 8개 실패 재현 |
 
@@ -50,6 +51,11 @@
 `!ㅊ`가 control 메시지로 분류되고 기존 `pre_gateway_dispatch`에서 agent dispatch 전
 `skip`되며, 같은 원본 메시지 ID가 history filter에서 제외되는 흐름을 확인했다. 두
 스모크 모두 LLM이나 라이브 Discord를 호출하지 않았다.
+
+플러그인 저장소의 commit `0a70bd7b05997b3de5d1071b35f17a2517e46bcf`에서
+[GitHub Actions run 33473106680](https://github.com/chriskimjj/agent-extensions/actions/runs/33473106680)을
+실행했다. Ubuntu의 Python 3.11·3.12·3.13, macOS의 Python 3.11, Windows의
+Python 3.11에서 각각 46개 behavior test, Ruff와 bytecode compile이 모두 통과했다.
 
 broader 검증은 다음 공식 wrapper로 실행했다.
 

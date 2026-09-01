@@ -136,7 +136,8 @@
   하위 디렉터리 설치본에는 `.git`이 없어 `hermes plugins update`도 사용할 수 없다.
   고정 커밋 재설치 절차는 [DEPLOYMENT.md](DEPLOYMENT.md)가 소유한다.
 - 공개 저장소의 plugin 전용 CI는 Linux Python 3.11~3.13, macOS 3.11,
-  Windows 3.11에서 단위 테스트·Ruff·bytecode compile을 실행하도록 구성했다.
+  Windows 3.11에서 단위 테스트·Ruff·bytecode compile을 모두 통과했다. 첫 검증 run은
+  [33473106680](https://github.com/chriskimjj/agent-extensions/actions/runs/33473106680)이다.
 
 ## 라이브 상태
 

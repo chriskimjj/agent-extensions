@@ -1,5 +1,7 @@
 # discord-related-threads
 
+[![Discord related threads CI](https://github.com/chriskimjj/agent-extensions/actions/workflows/discord-related-threads.yml/badge.svg)](https://github.com/chriskimjj/agent-extensions/actions/workflows/discord-related-threads.yml)
+
 A standalone user plugin for `NousResearch/hermes-agent`.
 
 Version `1.1.0` preserves the original explicit related-thread tool and footer,
