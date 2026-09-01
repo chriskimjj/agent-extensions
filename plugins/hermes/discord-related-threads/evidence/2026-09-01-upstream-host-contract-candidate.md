@@ -5,6 +5,8 @@
 ## 범위와 출처
 
 - 외부 플러그인 코드 기준: `agent-extensions` `d6249efcdb6031e59c21ddad5ca0e3774afaa6c0`
+- 공개 설치 검증 revision:
+  `agent-extensions` `3db596d79364538ae000b42e5bc3b86c176f047f`
 - 공식 Hermes 기준선: `NousResearch/hermes-agent` `main`
   `21b2095d00a98b8ad7b5c60b10587619c852cdb8`
 - 범용 host 계약 후보: `bd853a945e46cf0cdf24db9530b8a6aa4cc514d2`
@@ -43,6 +45,7 @@
 | 외부 플러그인 등록 스모크 | passed |
 | 활성 설정 control/history 통합 스모크 | passed |
 | 후보 host `hermes plugins doctor --ci` | passed |
+| 공개 SHA 고정 remote subdirectory install | passed, default-disabled |
 | 공개 plugin CI 5개 OS/Python 조합 | passed |
 | broader gateway + plugin-manager 영역 | 7,430 passed, 8 failed, 40 skipped |
 | exact-base 실패 파일 대조 | 같은 8개 실패 재현 |
@@ -59,8 +62,8 @@
 unknown으로 거부했다. 이는 compatibility probe가 병합 전 host에서 fail closed하는
 의도한 결과다.
 
-플러그인 저장소의 commit `cb4b57dcf32763b2b23a4593d0acd440eaa5dd05`에서
-[GitHub Actions run 33473470921](https://github.com/chriskimjj/agent-extensions/actions/runs/33473470921)을
+플러그인 저장소의 commit `3db596d79364538ae000b42e5bc3b86c176f047f`에서
+[GitHub Actions run 33473668528](https://github.com/chriskimjj/agent-extensions/actions/runs/33473668528)을
 실행했다. Ubuntu의 Python 3.11·3.12·3.13, macOS의 Python 3.11, Windows의
 Python 3.11에서 각각 47개 behavior test, Ruff와 bytecode compile이 모두 통과했다.
 
@@ -79,23 +82,38 @@ spawn, 현재 환경에 없는 WeCom XML 선택 의존성이다. 후보와 직�
 
 ## 설치와 업데이트 관찰
 
-공개 저장소 하위 디렉터리 설치를 라이브와 분리된 임시 프로필에서 실행했다.
+공개 저장소 하위 디렉터리 설치를 라이브와 분리된 임시 프로필에서 고정 SHA로
+실행했다.
 
 ```bash
-hermes plugins install \
+hermes plugins install --no-enable \
+  --ref 3db596d79364538ae000b42e5bc3b86c176f047f \
   chriskimjj/agent-extensions/plugins/hermes/discord-related-threads
 ```
 
-설치는 성공했고 기본 비활성 상태로 끝났다. 설치 대상은 Hermes 코어 checkout 밖의
+설치는 성공했고 `hermes plugins list --user --json`에서 1.1.0, `not enabled`로
+끝났다. 원본과 설치본의 `plugin.yaml`, `LICENSE`, `__init__.py` SHA-1도 각각
+일치했다. 후보 host의 Doctor를 설치된 ID에 다시 실행해 1 tool과 4 hooks의 선언·등록
+일치를 확인했다. 설치 대상은 Hermes 코어 checkout 밖의
 `<HERMES_HOME>/plugins/discord-related-threads`였으므로 코어 업데이트와 설치 보존은
-분리된다. 그러나 하위 디렉터리를 임시 clone에서 꺼내 설치하는 현재 동작은 대상의
-`.git`을 보존하지 않았다. 이어서 실행한
-`hermes plugins update discord-related-threads`는 다음 이유로 실패했다.
+분리된다.
+
+이 스모크의 첫 시도는 `manifest_version: 2`를 현재 installer가 상한 1로 거부해
+중단됐다. 런타임 parser는 additive metadata를 지원하므로 명시적 format-version만
+제거하고 `api_version`, license, homepage, tags와 tool/hook 선언은 유지했다. 수정한
+공개 SHA의 재시도는 통과했으며 기존 Hermes에서도 관계 기능 설치 자체를 막지 않는다.
+
+하위 디렉터리를 임시 clone에서 꺼내 설치하는 현재 동작은 대상의 `.git`을 보존하지
+않는다. unpinned 설치본의 `hermes plugins update`는 다음 이유로 실패한다.
 
 ```text
 Plugin 'discord-related-threads' was not installed from git (no .git directory).
 Cannot update.
 ```
+
+지원 절차의 pinned 설치본에서는 source와 revision이 `.install-metadata.json`에
+남는다. 이 경우 같은 update 명령은 자동 이동을 거부하고 새 40자 SHA를 지정한
+`install --force --ref`를 안내했다.
 
 따라서 현재 사실은 “Hermes 코어 업데이트가 설치된 플러그인을 지우지 않는다”이지,
 “Hermes 업데이트가 플러그인 코드도 자동 갱신한다”가 아니다. 지원 배포의 현재 갱신

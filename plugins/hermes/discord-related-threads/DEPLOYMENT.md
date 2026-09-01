@@ -33,6 +33,11 @@
   설치 대상에 `.git`이 보존되지 않았다. 따라서 현재 Hermes의
   `hermes plugins update discord-related-threads`는
   `was not installed from git (no .git directory)`로 종료된다.
+- 지원 절차처럼 `--ref`로 설치하면 Hermes는 출처와 revision을 별도 metadata에
+  보존하고 설치본을 pinned 상태로 표시한다. 이 경우 `hermes plugins update`는
+  자동 이동을 명시적으로 거부하고 새 40자 SHA를 넣은 `install --force --ref`를
+  안내한다. 어느 설치 방식도 Hermes 코어 업데이트에 plugin code 자동 갱신을
+  결합하지 않는다.
 - 이 모노레포 배포를 갱신할 때는 이 문서의 백업·호환성 검증을 먼저 수행한 뒤 고정
   커밋으로 계획된 재설치를 한다.
 

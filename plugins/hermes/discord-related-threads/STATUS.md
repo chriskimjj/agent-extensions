@@ -138,11 +138,16 @@
 - 공개 저장소의 plugin 전용 CI는 Linux Python 3.11~3.13, macOS 3.11,
   Windows 3.11에서 47개 단위 테스트·Ruff·bytecode compile을 모두 통과했다. 배포
   metadata를 포함한 검증 run은
-  [33473470921](https://github.com/chriskimjj/agent-extensions/actions/runs/33473470921)이다.
+  [33473668528](https://github.com/chriskimjj/agent-extensions/actions/runs/33473668528)이다.
 - 공개 재사용 조건은 plugin manifest와 전용 `LICENSE`에 MIT로 명시했다.
 - 후보 Hermes의 실제 `hermes plugins doctor --ci`에서 manifest, 1 tool과 4 hooks의
   선언·등록 일치가 통과했다. 현재 공식 Hermes에서는 두 신규 hook을 unknown으로
   명시적으로 거부하므로, 병합 전 host를 지원하는 것처럼 오인하지 않는다.
+- 공개 원격 commit `3db596d79364538ae000b42e5bc3b86c176f047f`를 임시
+  `HERMES_HOME`에 `--ref`로 설치해 1.1.0·기본 비활성 상태, 핵심 파일 해시 일치와
+  설치된 ID 대상 후보-host Doctor 통과를 확인했다. installer의 manifest-version
+  불일치도 이 과정에서 발견해, 기존 Hermes installer와 호환되는 additive metadata
+  형식으로 수정했다.
 
 ## 라이브 상태
 
